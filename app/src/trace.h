@@ -27,9 +27,9 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the 
-*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to 
-*  any modified version of this software or any modified version of the underlying software originally 
+*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the
+*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to
+*  any modified version of this software or any modified version of the underlying software originally
 *  provided by Alliance without the prior written consent of Alliance.
 *
 *  5. The name of the copyright holder, contributors, the United States Government, the United States
@@ -61,42 +61,42 @@ class wxNumericCtrl;
 class wxCheckBox;
 
 int RunTraceMultiThreaded( Project *System, int nrays, int nmaxrays,
-						int nmaxthreads, int *seed, bool sunshape, bool opterrs, bool aspowertower,
-						wxArrayString &errors, bool is_cmd=false );
+                        int nmaxthreads, int *seed, bool sunshape, bool opterrs, bool aspowertower,
+                        wxArrayString &errors, bool is_cmd=false );
 
 class TraceForm : public wxPanel
 {
-	Project &m_prj;
+    Project &m_prj;
 
 public:
-	TraceForm( wxWindow *parent, Project &m_prj );
+    TraceForm( wxWindow *parent, Project &m_prj );
 
-	void SetOptions( size_t nrays, size_t nmaxsunrays, int ncpu, int seed,
-		bool sunshape, bool opterr, bool aspowertower );
-	void GetOptions( size_t *nrays, size_t *nmaxsunrays, int *ncpu, int *seed,
-		bool *sunshape, bool *opterr, bool *aspowertower );
+    void SetOptions( size_t nrays, size_t nmaxsunrays, int ncpu, int seed,
+        bool sunshape, bool opterr, bool aspowertower );
+    void GetOptions( size_t *nrays, size_t *nmaxsunrays, int *ncpu, int *seed,
+        bool *sunshape, bool *opterr, bool *aspowertower );
 
-	void SetWorkDir( const wxString &path );
-	wxString GetWorkDir();
-	
-	bool IsRunning();
-	// returns milliseconds elapsed, or negative number indicating error
-	int StartTrace( bool mt = true, bool quiet = false, wxArrayString *err = 0 );
-	void CancelTrace();
-	int GetLastSeedVal() { return m_lastSeedVal; }
+    void SetWorkDir( const wxString &path );
+    wxString GetWorkDir();
+
+    bool IsRunning();
+    // returns milliseconds elapsed, or negative number indicating error
+    int StartTrace( bool mt = true, bool quiet = false, wxArrayString *err = 0 );
+    void CancelTrace();
+    int GetLastSeedVal() { return m_lastSeedVal; }
 
 private:
-	
-	void OnCommand( wxCommandEvent &evt );
 
-	wxNumericCtrl *m_numRays, *m_numMaxSunRays, *m_numCpus, *m_seed;
-	wxCheckBox *m_inclSunShape, *m_inclOpticalErrors, *m_asPowerTower;
-	wxExtTextCtrl *m_workDir;
+    void OnCommand( wxCommandEvent &evt );
 
-	int m_lastSeedVal;
-	wxNumericCtrl *m_elapsedTime, *m_lastSeed;
+    wxNumericCtrl *m_numRays, *m_numMaxSunRays, *m_numCpus, *m_seed;
+    wxCheckBox *m_inclSunShape, *m_inclOpticalErrors, *m_asPowerTower;
+    wxExtTextCtrl *m_workDir;
 
-	DECLARE_EVENT_TABLE();
+    int m_lastSeedVal;
+    wxNumericCtrl *m_elapsedTime, *m_lastSeed;
+
+    DECLARE_EVENT_TABLE();
 };
 
 

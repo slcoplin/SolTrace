@@ -18,26 +18,26 @@ LDFLAGS =  $(WEXLIB) $(LKLIB) $(CORETRACELIB) `wx-config-3 --libs stc` `wx-confi
 
 
 OBJECTS = \
-	console.o\
-	elementlist.o \
-	fluxmap.o \
-	intersections.o \
-	geometry.o \
-	optics.o \
-	raydata.o \
-	script.o \
-	sunshape.o \
-	soltrace.o \
-	project.o \
-	trace.o
+    console.o\
+    elementlist.o \
+    fluxmap.o \
+    intersections.o \
+    geometry.o \
+    optics.o \
+    raydata.o \
+    script.o \
+    sunshape.o \
+    soltrace.o \
+    project.o \
+    trace.o
 
 TARGET = soltrace
 
 $(TARGET): $(OBJECTS) $(WEXLIB)
-	$(CXX) -g -o $@ $^ $(LDFLAGS)
-	mkdir -p ../deploy/linux_64
-	cp $(TARGET) ../deploy/linux_64
+    $(CXX) -g -o $@ $^ $(LDFLAGS)
+    mkdir -p ../deploy/linux_64
+    cp $(TARGET) ../deploy/linux_64
 
 clean:
-	rm -f $(TARGET) $(OBJECTS)
+    rm -f $(TARGET) $(OBJECTS)
 

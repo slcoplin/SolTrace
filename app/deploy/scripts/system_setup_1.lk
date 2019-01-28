@@ -14,8 +14,8 @@ sunopt( Sun );
 /*
 // example configures a user defined sunshape with an array of [angle,intensity] datapoints
 MySun = [ [0, 1],
-			[0.4, 0.9989],
-			[0.8, 0.884] ];
+            [0.4, 0.9989],
+            [0.8, 0.884] ];
 
 sunopt( {'userdata'=MySun, 'shape'='u'} );
 */
@@ -47,11 +47,11 @@ activestage( 'stage 1' );
 
 addelement(); // adds element to current stage
 elementopt( 0, {'en'=true, 'x'=0, 'y'=0, 'z'=0 ,
-	'ax'=0, 'ay'=1, 'az'=0, 
-	'zrot'=0, 'aper'=['r',6.2,6.83,0,0,0,0,0,0],
-	'surf'=['f',0,0,0,0,0,0,0,0],
-	'optic'='concen_1'} );
-	
+    'ax'=0, 'ay'=1, 'az'=0, 
+    'zrot'=0, 'aper'=['r',6.2,6.83,0,0,0,0,0,0],
+    'surf'=['f',0,0,0,0,0,0,0,0],
+    'optic'='concen_1'} );
+    
 
 
 /* ******************************************
@@ -59,7 +59,7 @@ elementopt( 0, {'en'=true, 'x'=0, 'y'=0, 'z'=0 ,
    ****************************************** */
 traceopt({ 'rays'=2000 } );
 trace();
-	
+    
 
 outln('final ray hits: ' + rayhits( 0, 0, true ));
 

@@ -54,10 +54,10 @@
 #include "procs.h"
 
 void SurfaceZatXYPair(
-			double PosXYZ[3],
-			TElement *Element,
-			double *FXYZ,
-			int *ErrorFlag )
+            double PosXYZ[3],
+            TElement *Element,
+            double *FXYZ,
+            int *ErrorFlag )
 {
 /*{Purpose: To compute the Z value of the surface equation at an X,Y pair.
     Input - PosXYZ[3] = X, Y, Z coordinate position
@@ -88,60 +88,60 @@ void SurfaceZatXYPair(
                          = 0  ==> no errors
                          > 0  ==> interpolation error
 }*/
-	int i=0;
-	double X=0.0,Y=0.0,Z=0.0;
-	double Rho2=0.0, Rho=0.0;
-	double Sum1=0.0, ZZ=0.0,  zm=0.0;
+    int i=0;
+    double X=0.0,Y=0.0,Z=0.0;
+    double Rho2=0.0, Rho=0.0;
+    double Sum1=0.0, ZZ=0.0,  zm=0.0;
 
      //Initialize variables
-	X = PosXYZ[0];
-	Y = PosXYZ[1];
-	Z = PosXYZ[2];
-	*ErrorFlag = 0;
-	
+    X = PosXYZ[0];
+    Y = PosXYZ[1];
+    Z = PosXYZ[2];
+    *ErrorFlag = 0;
+    
 //===SurfaceType = 1, 7  Rotationally Symmetric surfaces and single axis curvature sections===========================
-	if (Element->SurfaceType == 1 || Element->SurfaceType == 7)
-	{
-		if (Element->SurfaceType == 1)
-			Rho2 = X*X + Y*Y;    //rotationally symmetric
-		else
-			Rho2 = X*X;         //single axis curvature depends only on x
+    if (Element->SurfaceType == 1 || Element->SurfaceType == 7)
+    {
+        if (Element->SurfaceType == 1)
+            Rho2 = X*X + Y*Y;    //rotationally symmetric
+        else
+            Rho2 = X*X;         //single axis curvature depends only on x
 
         Rho = sqrt(Rho2);
 
         if (Element->ConeHalfAngle != 0.0) goto Label_160;
 
-		//wendelin 5-18-11
+        //wendelin 5-18-11
 
-		//if (Element->Kappa*Element->VertexCurvX*Element->VertexCurvX*Rho2 > 1.0)  //xy pair cannot be found on closed surface   06-10-07
-		if ( Element->Kappa*(Element->VertexCurvX*Element->VertexCurvX*X*X+Element->VertexCurvY*Element->VertexCurvY*Y*Y) > 1.0 )  //xy pair cannot be found on closed surface   06-10-07
+        //if (Element->Kappa*Element->VertexCurvX*Element->VertexCurvX*Rho2 > 1.0)  //xy pair cannot be found on closed surface   06-10-07
+        if ( Element->Kappa*(Element->VertexCurvX*Element->VertexCurvX*X*X+Element->VertexCurvY*Element->VertexCurvY*Y*Y) > 1.0 )  //xy pair cannot be found on closed surface   06-10-07
         {
-			*FXYZ = 0.0;
-			return;
-		}
+            *FXYZ = 0.0;
+            return;
+        }
 
-		//wendelin 5-18-11
-		// *FXYZ = Element->VertexCurvX*Rho2/(1.0+sqrt(1.0-Element->Kappa*Element->VertexCurvX*Element->VertexCurvX*Rho2));
-		*FXYZ = (Element->VertexCurvX*X*X+Element->VertexCurvY*Y*Y)
-				/ (1.0+sqrt(1.0-Element->Kappa*(Element->VertexCurvX*Element->VertexCurvX*X*X+Element->VertexCurvY*Y*Y)));
+        //wendelin 5-18-11
+        // *FXYZ = Element->VertexCurvX*Rho2/(1.0+sqrt(1.0-Element->Kappa*Element->VertexCurvX*Element->VertexCurvX*Rho2));
+        *FXYZ = (Element->VertexCurvX*X*X+Element->VertexCurvY*Y*Y)
+                / (1.0+sqrt(1.0-Element->Kappa*(Element->VertexCurvX*Element->VertexCurvX*X*X+Element->VertexCurvY*Y*Y)));
 
 /*        for (i=0;i<5;i++)
              if (Element->Alpha[i] != 0.0) goto Label_130;
-			 */
+             */
              
         return;
 
-		Sum1 = 0.0;
-		for (i=0;i<5;i++)
+        Sum1 = 0.0;
+        for (i=0;i<5;i++)
              Sum1 = Element->Alpha[i]*pow(Rho,2*(i+1)) + Sum1;
 
         *FXYZ += Sum1;
         return;
 
 Label_160:
-		*FXYZ = sqrt(Rho2)/tan(Element->ConeHalfAngle*(ACOSM1O180));
+        *FXYZ = sqrt(Rho2)/tan(Element->ConeHalfAngle*(ACOSM1O180));
         return;
-	}
+    }
 
 //===SurfaceType = 3, Plane Surfaces============================================
     /* {The equation of a plane is: kx + ly + mz = p,  where k,l,m are the direction
@@ -192,70 +192,70 @@ Label_160:
      end;}*/
 
 //===SurfaceType = 5, VSHOT data================================================
-	if (Element->SurfaceType == 5)
-	{
-		Rho2 = X*X + Y*Y;
-		if (Rho2 == 0.0)
-		{
-			*FXYZ = 0.0;
-			return;
-		}
-		// evaluate z, dz/dx and dz/dy from the monomial fit at x,y
-		EvalMono(X, Y, Element->BCoefficients, Element->FitOrder, 0.0, 0.0, &zm); //the 0.0's are values for DeltaX and DeltaY; **[need to look at this further]**
-		*FXYZ = zm;
-		return;
-	}
+    if (Element->SurfaceType == 5)
+    {
+        Rho2 = X*X + Y*Y;
+        if (Rho2 == 0.0)
+        {
+            *FXYZ = 0.0;
+            return;
+        }
+        // evaluate z, dz/dx and dz/dy from the monomial fit at x,y
+        EvalMono(X, Y, Element->BCoefficients, Element->FitOrder, 0.0, 0.0, &zm); //the 0.0's are values for DeltaX and DeltaY; **[need to look at this further]**
+        *FXYZ = zm;
+        return;
+    }
 
 //===SurfaceType = 6, Zernike monomials=========================================
-	if (Element->SurfaceType == 6)
-	{
+    if (Element->SurfaceType == 6)
+    {
           // evaluate z from the monomial expression at x,y
-		EvalMono(X, Y, Element->BCoefficients, Element->FitOrder, 0.0, 0.0, &ZZ); //the 0.0's are values for DeltaX and DeltaY; **[need to look at this further]**
-		*FXYZ = ZZ;
-		return;
-	}
+        EvalMono(X, Y, Element->BCoefficients, Element->FitOrder, 0.0, 0.0, &ZZ); //the 0.0's are values for DeltaX and DeltaY; **[need to look at this further]**
+        *FXYZ = ZZ;
+        return;
+    }
 
 //===SurfaceType = 8, rotationally symmetric polynomial surface=============================
-	if (Element->SurfaceType == 8)
-	{
-		// evaluate z & slopes from the polynomial expression at r = sqrt(x^2+y^2)
+    if (Element->SurfaceType == 8)
+    {
+        // evaluate z & slopes from the polynomial expression at r = sqrt(x^2+y^2)
 
-		double yval = Y;
-		if ( Element->ShapeIndex == 'l' || Element->ShapeIndex == 'L' )
-			yval = 0.0;
+        double yval = Y;
+        if ( Element->ShapeIndex == 'l' || Element->ShapeIndex == 'L' )
+            yval = 0.0;
 
-		EvalPoly(X, yval, Element->PolyCoeffs, Element->FitOrder, &ZZ);
-		*FXYZ = ZZ;
-		return;
-	}
+        EvalPoly(X, yval, Element->PolyCoeffs, Element->FitOrder, &ZZ);
+        *FXYZ = ZZ;
+        return;
+    }
 //===SurfaceType = 9, rotationally symmetric cubic spline interpolation surface==============
      /*if (Element->SurfaceType == 9)
-	 {
-		ZZ = 0.0;
-		DFDX = 0.0;
-		DFDY = 0.0;
+     {
+        ZZ = 0.0;
+        DFDX = 0.0;
+        DFDY = 0.0;
 
-		Rho = sqrt(X*X+Y*Y);
-		dRhodx = X/Rho;
-		dRhody = Y/Rho;
-		//evaluate z & slopes using cubic spline interpolation
-		splint(Element->CubicSplineXData,
-			Element->CubicSplineYData,
-			Element->CubicSplineY2Data,
-			Element->CubicSplineXData.length(),
-			Rho,
-			&ZZ,&dzdRho);
+        Rho = sqrt(X*X+Y*Y);
+        dRhodx = X/Rho;
+        dRhody = Y/Rho;
+        //evaluate z & slopes using cubic spline interpolation
+        splint(Element->CubicSplineXData,
+            Element->CubicSplineYData,
+            Element->CubicSplineY2Data,
+            Element->CubicSplineXData.length(),
+            Rho,
+            &ZZ,&dzdRho);
 
-		DFDX = dzdRho*dRhodx;
-		DFDY = dzdRho*dRhody;
+        DFDX = dzdRho*dRhodx;
+        DFDY = dzdRho*dRhody;
 
-		PosXYZ[2] = ZZ;
-		*FXYZ = Z - ZZ;
-		//change sign of derivatives to agree with SurfaceType = 1
-		DFDX = -DFDX;
-		DFDY = -DFDY;
-		return;
-	 }*/
+        PosXYZ[2] = ZZ;
+        *FXYZ = Z - ZZ;
+        //change sign of derivatives to agree with SurfaceType = 1
+        DFDX = -DFDX;
+        DFDY = -DFDY;
+        return;
+     }*/
 
  //the following surfacetype is now handled above in the general case
 

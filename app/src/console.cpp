@@ -208,8 +208,8 @@ int main(int argc, char **argv)
 
     // create and execute according to the commands
     FILE *fp_in = fopen( fname.c_str(), "r" );
-	
-	Project project;
+    
+    Project project;
     project.Read( fp_in );
     
     fclose(fp_in); 
@@ -228,13 +228,13 @@ int main(int argc, char **argv)
     //run the simulation here
     int msec = RunTraceMultiThreaded( &project, 
             (int)rays,
-			(int)maxrays,
-			threads,
-			&seed,
-			sunshape,
-			error,
+            (int)maxrays,
+            threads,
+            &seed,
+            sunshape,
+            error,
             tower,
-			ref_errors,
+            ref_errors,
             true);
 
 
@@ -242,46 +242,46 @@ int main(int argc, char **argv)
     if(! fnout.IsEmpty() )
     {
         FILE *fp_out = fopen( fnout.c_str(), "w" );
-	    if ( !fp_out )
-	    {
-		    wxPrintf("Could not open file for writing:\n%s\n", fnout);
-		    return 0;
-	    }
+        if ( !fp_out )
+        {
+            wxPrintf("Could not open file for writing:\n%s\n", fnout);
+            return 0;
+        }
 
         //create output
         if ( msec < 0 )
-		    wxPrintf( wxJoin( ref_errors, '\n' ) );
+            wxPrintf( wxJoin( ref_errors, '\n' ) );
 
         // by default, all ray data is in stage coordinates
-	    RayData &rd = project.Results;
-	
-	    int nwrite = rd.PrepareExport( RayData::COORD_GLOBAL, 0 );
-	
-	    // progress update every 0.5 %
-	    int nupdate = nwrite / 200;
-	    size_t nwr = 0;
-	    size_t bytes = 0;
-	
-	    double Pos[3], Cos[3];
-	    int Elm, Stg, Ray;
+        RayData &rd = project.Results;
+    
+        int nwrite = rd.PrepareExport( RayData::COORD_GLOBAL, 0 );
+    
+        // progress update every 0.5 %
+        int nupdate = nwrite / 200;
+        size_t nwr = 0;
+        size_t bytes = 0;
+    
+        double Pos[3], Cos[3];
+        int Elm, Stg, Ray;
 
-	    fputs( "Pos X,Pos Y,Pos Z,Cos X,Cos Y,Cos Z,Element,Stage,Ray Number\n", fp_out );
-	    while( rd.GetNextExport( project, Pos, Cos, Elm, Stg, Ray ) )
-	    {
+        fputs( "Pos X,Pos Y,Pos Z,Cos X,Cos Y,Cos Z,Element,Stage,Ray Number\n", fp_out );
+        while( rd.GetNextExport( project, Pos, Cos, Elm, Stg, Ray ) )
+        {
 
-		    int nb = fprintf( fp_out, "%lg,%lg,%lg,%lg,%lg,%lg,%d,%d,%d\n",
-			    Pos[0], Pos[1], Pos[2],
-			    Cos[0], Cos[1], Cos[2],
-			    Elm, Stg, Ray );
+            int nb = fprintf( fp_out, "%lg,%lg,%lg,%lg,%lg,%lg,%d,%d,%d\n",
+                Pos[0], Pos[1], Pos[2],
+                Cos[0], Cos[1], Cos[2],
+                Elm, Stg, Ray );
 
-		    if ( nb < 0 ) break; // file error, disk space issue?
+            if ( nb < 0 ) break; // file error, disk space issue?
 
-		    bytes += nb;
-		    nwr++;
-	    }
+            bytes += nb;
+            nwr++;
+        }
 
-	    if ( ferror( fp_out ) )
-		    wxPrintf(wxString("An error occurred exporting the CSV data file: ") + strerror(errno));
+        if ( ferror( fp_out ) )
+            wxPrintf(wxString("An error occurred exporting the CSV data file: ") + strerror(errno));
     
         fclose(fp_out);
     }
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
             continue;
         }
 
-	    RayData &rd = project.Results;
+        RayData &rd = project.Results;
 
         //open a new file for writing
         wxFileName feout;

@@ -525,92 +525,93 @@ static int trace_callback_multi_thread(
     st_uint_t ntotrace, st_uint_t curstage,
     st_uint_t nstages, void *data );
 
+// A thread for multi-threading
 class TraceThread : public wxThread
 {
-private:
-    st_context_t m_contextId;
-    bool m_cancelFlag;
-    bool m_asPowerTower;
+    private:
+        st_context_t m_contextId;
+        bool m_cancelFlag;
+        bool m_asPowerTower;
 
-    size_t m_nTraceTotal;
-    size_t m_nTraced;
-    size_t m_nToTrace;
-    size_t m_curStage;
-    size_t m_nStages;
-    int m_iThread;
-    int m_seedVal;
-    int m_resultCode;
+        size_t m_nTraceTotal;
+        size_t m_nTraced;
+        size_t m_nToTrace;
+        size_t m_curStage;
+        size_t m_nStages;
+        int m_iThread;
+        int m_seedVal;
+        int m_resultCode;
 
-    wxMutex m_statusLock;
-public:
-    TraceThread( st_context_t spcxt, int ithread, int seed, bool aspowertower )
-        : wxThread( wxTHREAD_JOINABLE ), m_cancelFlag( false )
-    {
-        m_iThread = ithread;
-        m_contextId = spcxt;
-        m_seedVal = seed;
-        m_resultCode = -1;
-        m_asPowerTower = aspowertower;
+        wxMutex m_statusLock;
+    public:
+        TraceThread( st_context_t spcxt, int ithread, int seed, bool aspowertower )
+            : wxThread( wxTHREAD_JOINABLE ), m_cancelFlag( false )
+        {
+            m_iThread = ithread;
+            m_contextId = spcxt;
+            m_seedVal = seed;
+            m_resultCode = -1;
+            m_asPowerTower = aspowertower;
 
-        m_nTraceTotal = m_nTraced = m_nToTrace = m_curStage = m_nStages = 0;
-    }
+            m_nTraceTotal = m_nTraced = m_nToTrace = m_curStage = m_nStages = 0;
+        }
 
-    virtual ~TraceThread()
-    {
-        ::st_free_context( m_contextId );
-    }
+        virtual ~TraceThread()
+        {
+            ::st_free_context( m_contextId );
+        }
 
-    void cancelTrace()
-    {
-        m_cancelFlag = 1;
-    }
+        void cancelTrace()
+        {
+            m_cancelFlag = 1;
+        }
 
-    bool isTraceCanceled()
-    {
-        return (m_cancelFlag != 0);
-    }
+        bool isTraceCanceled()
+        {
+            return (m_cancelFlag != 0);
+        }
 
-    st_context_t contextId()
-    {
-        return m_contextId;
-    }
+        st_context_t contextId()
+        {
+            return m_contextId;
+        }
 
-    int resultCode()
-    {
-        return m_resultCode;
-    }
+        int resultCode()
+        {
+            return m_resultCode;
+        }
 
-    void updateStatus( size_t ntracedtotal, size_t ntraced, size_t ntotrace, size_t curstage, size_t nstages )
-    {
-        wxMutexLocker lock( m_statusLock );
+        void updateStatus( size_t ntracedtotal, size_t ntraced, size_t ntotrace, size_t curstage, size_t nstages )
+        {
+            wxMutexLocker lock( m_statusLock );
 
-        m_nTraceTotal = ntracedtotal;
-        m_nTraced = ntraced;
-        m_nToTrace = ntotrace;
-        m_curStage = curstage;
-        m_nStages = nstages;
-    }
+            m_nTraceTotal = ntracedtotal;
+            m_nTraced = ntraced;
+            m_nToTrace = ntotrace;
+            m_curStage = curstage;
+            m_nStages = nstages;
+        }
 
-    void status(size_t *total, size_t *traced, size_t *totrace, size_t *stage, size_t *nstages )
-    {
-        wxMutexLocker lock( m_statusLock );
+        void status(size_t *total, size_t *traced, size_t *totrace, size_t *stage, size_t *nstages )
+        {
+            wxMutexLocker lock( m_statusLock );
 
-        *total = m_nTraceTotal;
-        *traced = m_nTraced;
-        *totrace = m_nToTrace;
-        *stage = m_curStage;
-        *nstages = m_nStages;
-    }
+            *total = m_nTraceTotal;
+            *traced = m_nTraced;
+            *totrace = m_nToTrace;
+            *stage = m_curStage;
+            *nstages = m_nStages;
+        }
 
-    virtual ExitCode Entry()
-    {
-        m_resultCode = ::st_sim_run( m_contextId,
-            (unsigned int) m_seedVal,
-            m_asPowerTower,
-            trace_callback_multi_thread, this );
+        virtual ExitCode Entry()
+        {
+            m_resultCode = ::st_sim_run( m_contextId,
+                (unsigned int) m_seedVal,
+                m_asPowerTower,
+                trace_callback_multi_thread, this );
 
-        return 0;
-    }
+            return 0;
+        }
 };
 
 

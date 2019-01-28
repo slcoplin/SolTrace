@@ -60,23 +60,23 @@
 class SolTraceScriptWindowFactory : public wxLKScriptWindowFactory
 {
 public:
-	SolTraceScriptWindowFactory();
-	virtual ~SolTraceScriptWindowFactory();
-	virtual wxLKScriptWindow *Create();
+    SolTraceScriptWindowFactory();
+    virtual ~SolTraceScriptWindowFactory();
+    virtual wxLKScriptWindow *Create();
 };
 
 
 class SolTraceScriptWindow  : public wxLKScriptWindow
 {
 public:
-	SolTraceScriptWindow( wxWindow *parent, int id = wxID_ANY );
-	
+    SolTraceScriptWindow( wxWindow *parent, int id = wxID_ANY );
+    
 protected:
-	virtual void OnScriptStarted();
-	virtual void OnScriptStopped();
-	virtual void OnHelp();
+    virtual void OnScriptStarted();
+    virtual void OnScriptStopped();
+    virtual void OnHelp();
 
-	DECLARE_EVENT_TABLE();
+    DECLARE_EVENT_TABLE();
 };
 
 

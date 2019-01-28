@@ -64,31 +64,31 @@ class OpticalPropertyForm;
 class OpticsForm : public wxPanel
 {
 public:
-	OpticsForm( wxWindow *parent, Project &prj );
+    OpticsForm( wxWindow *parent, Project &prj );
 
-	void UpdateList(int sel=-1);
-	void UpdateOptForms(int idx=-1);
+    void UpdateList(int sel=-1);
+    void UpdateOptForms(int idx=-1);
 
-	void Modified();
+    void Modified();
 
-	void AddOptic(const wxString &name = "New optic");
-	void DeleteOptic( int sel );
-	void ClearOptics();
+    void AddOptic(const wxString &name = "New optic");
+    void DeleteOptic( int sel );
+    void ClearOptics();
 
 private:
-	Project &m_prj;
+    Project &m_prj;
 
-	void OnButton(wxCommandEvent &evt);
-	void OnListSelect(wxCommandEvent &evt);
-	void OnNameChange(wxCommandEvent &evt);
+    void OnButton(wxCommandEvent &evt);
+    void OnListSelect(wxCommandEvent &evt);
+    void OnNameChange(wxCommandEvent &evt);
 
-	wxNotebook *m_optTabs;
-	wxListBox *m_opticList;
-	OpticalPropertyForm *m_frontOpt;
-	OpticalPropertyForm *m_backOpt;
-	wxExtTextCtrl *m_optName;
+    wxNotebook *m_optTabs;
+    wxListBox *m_opticList;
+    OpticalPropertyForm *m_frontOpt;
+    OpticalPropertyForm *m_backOpt;
+    wxExtTextCtrl *m_optName;
 
-	DECLARE_EVENT_TABLE()
+    DECLARE_EVENT_TABLE()
 };
 
 #endif

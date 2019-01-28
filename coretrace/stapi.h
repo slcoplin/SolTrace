@@ -27,9 +27,9 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the 
-*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to 
-*  any modified version of this software or any modified version of the underlying software originally 
+*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the
+*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to
+*  any modified version of this software or any modified version of the underlying software originally
 *  provided by Alliance without the prior written consent of Alliance.
 *
 *  5. The name of the copyright holder, contributors, the United States Government, the United States
@@ -52,13 +52,13 @@
 #define __soltraceapi_h
 
 #ifdef _STCOREDLL_
-	#ifdef STCORE_API_EXPORTS
-	#define STCORE_API __declspec(dllexport)
-	#else
-	#define STCORE_API __declspec(dllimport)
-	#endif
+    #ifdef STCORE_API_EXPORTS
+    #define STCORE_API __declspec(dllexport)
+    #else
+    #define STCORE_API __declspec(dllimport)
+    #endif
 #else
-	#define STCORE_API
+    #define STCORE_API
 #endif
 
 #ifndef STCORE_API
@@ -94,13 +94,13 @@ STCORE_API int st_add_optic(st_context_t pcxt, const char *name);
 STCORE_API int st_delete_optic(st_context_t pcxt, st_uint_t idx);
 STCORE_API int st_clear_optics(st_context_t pcxt);
 STCORE_API int st_optic(st_context_t pcxt, st_uint_t idx, int fb, /* 1=front,2=back */
-				char dist, int optnum, int apgr, int order,
-				double rreal, double rimag,
-				double ref, double tra,
-				double gratingab12[3],
-				double rmsslope, double rmsspec,
-				int userefltable, int npoints,
-				double *angles, double *refls );
+                char dist, int optnum, int apgr, int order,
+                double rreal, double rimag,
+                double ref, double tra,
+                double gratingab12[3],
+                double rmsslope, double rmsspec,
+                int userefltable, int npoints,
+                double *angles, double *refls );
 
 /* functions to add/remove stages */
 STCORE_API int st_num_stages(st_context_t pcxt);
@@ -146,16 +146,16 @@ STCORE_API int st_elementmap(st_context_t pcxt, int *element_map);
 STCORE_API int st_stagemap(st_context_t pcxt, int *stage_map);
 STCORE_API int st_raynumbers(st_context_t pcxt, int *ray_numbers);
 STCORE_API int st_sun_stats(st_context_t pcxt, double *xmin, double *xmax, double *ymin, double *ymax, int *nsunrays );
-	
+
 /* functions to control simulation */
 STCORE_API int st_sim_params(st_context_t pcxt, int raycount, int maxcount);
 STCORE_API int st_sim_errors(st_context_t pcxt, int include_sun_shape, int include_optics);
 STCORE_API int st_sim_run( st_context_t pcxt, unsigned int seed, bool AsPowerTower,
-						  int (*callback)(st_uint_t ntracedtotal, st_uint_t ntraced, st_uint_t ntotrace, st_uint_t curstage, st_uint_t nstages, void *data), void *data);
+                          int (*callback)(st_uint_t ntracedtotal, st_uint_t ntraced, st_uint_t ntotrace, st_uint_t curstage, st_uint_t nstages, void *data), void *data);
 
 /*
 STCORE_API int st_sim_run_data( st_context_t pcxt, unsigned int seed, std::vector<std::vector< double > > *data_s1, std::vector<std::vector< double > > *data_s2, bool save_stage_data,
-						  int (*callback)(st_uint_t ntracedtotal, st_uint_t ntraced, st_uint_t ntotrace, st_uint_t curstage, st_uint_t nstages, void *data), void *data);
+                          int (*callback)(st_uint_t ntracedtotal, st_uint_t ntraced, st_uint_t ntotrace, st_uint_t curstage, st_uint_t nstages, void *data), void *data);
 */
 
 

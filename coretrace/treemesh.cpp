@@ -183,30 +183,30 @@ st_tree_node::st_tree_node()
 
 void st_tree_node::setup(st_tree_node *child0){
     //Set both children equal to specified node. Used for 'x' keys.
-	terminal = false;
-	m0 = child0;
-	m1 = m0;
+    terminal = false;
+    m0 = child0;
+    m1 = m0;
 }
 void st_tree_node::setup(st_tree_node *child0, st_tree_node *child1){
     //Set children nodes equal to node pointer values (as applicable). For ptrs to 0, don't set. 
-	terminal = false;
-	if(child0 != 0)
+    terminal = false;
+    if(child0 != 0)
         m0 = child0;
-	if(child1 != 0)
+    if(child1 != 0)
         m1 = child1;
 }
 void st_tree_node::setup(void* Data)
 {
     //Set node as terminal and add data
-	terminal = true;
+    terminal = true;
     if(Data!=0)     //Don't try to add a null value
-	    data.push_back(Data);
+        data.push_back(Data);
 }
 bool st_tree_node::is_terminal(){
-	return terminal;
+    return terminal;
 }
 vector<void*> *st_tree_node::get_array(){
-	return &data;
+    return &data;
 }
 st_tree_node *st_tree_node::m_proc(string &key, int index){
     /* 
@@ -217,14 +217,14 @@ st_tree_node *st_tree_node::m_proc(string &key, int index){
 
     */
 
-	char c;
-	try
-	{
-		c = key.at(index);
-	}
-	catch(...){
-		return this;
-	}
+    char c;
+    try
+    {
+        c = key.at(index);
+    }
+    catch(...){
+        return this;
+    }
     if(terminal)
         return this;
     switch (c)
@@ -244,49 +244,49 @@ st_tree_node *st_tree_node::m_proc(string &key, int index){
             return 0;
     }
 
-	return 0;
+    return 0;
 }
 vector<st_tree_node*> st_tree_node::m_get_children(){
-	vector<st_tree_node*> kids;
-	if(! terminal){
-		if( m0 == m1 ){
-			kids.push_back(m0);
-			vector<st_tree_node*> m0kids = m0->m_get_children();
-			for(unsigned int i=0; i<m0kids.size(); i++)
-				kids.push_back(m0kids.at(i));
-		}
-		else{
-			kids.push_back(m0);
-			kids.push_back(m1);
-			vector<st_tree_node*> m0kids = m0->m_get_children();
-			vector<st_tree_node*> m1kids = m1->m_get_children();
-			for(unsigned int i=0; i<m0kids.size(); i++)
-				kids.push_back(m0kids.at(i));
-			for(unsigned int i=0; i<m1kids.size(); i++)
-				kids.push_back(m1kids.at(i));
-		}
-	}
-	return kids;
+    vector<st_tree_node*> kids;
+    if(! terminal){
+        if( m0 == m1 ){
+            kids.push_back(m0);
+            vector<st_tree_node*> m0kids = m0->m_get_children();
+            for(unsigned int i=0; i<m0kids.size(); i++)
+                kids.push_back(m0kids.at(i));
+        }
+        else{
+            kids.push_back(m0);
+            kids.push_back(m1);
+            vector<st_tree_node*> m0kids = m0->m_get_children();
+            vector<st_tree_node*> m1kids = m1->m_get_children();
+            for(unsigned int i=0; i<m0kids.size(); i++)
+                kids.push_back(m0kids.at(i));
+            for(unsigned int i=0; i<m1kids.size(); i++)
+                kids.push_back(m1kids.at(i));
+        }
+    }
+    return kids;
 }
 vector<void*> st_tree_node::get_child_data(){
-	if(terminal){
-		return data;
-	}
-	else{
-		if(m0 == m1){
-			return m0->get_child_data();
-		}
-		else{
-			vector<void*> m0dat, m1dat, alldat;
-			m0dat = m0->get_child_data();
-			m1dat = m1->get_child_data();
-			for(unsigned int i=0; i<m0dat.size(); i++)
-				alldat.push_back(m0dat.at(i));
-			for(unsigned int i=0; i<m1dat.size(); i++)
-				alldat.push_back(m1dat.at(i));
-			return alldat;
-		}
-	}
+    if(terminal){
+        return data;
+    }
+    else{
+        if(m0 == m1){
+            return m0->get_child_data();
+        }
+        else{
+            vector<void*> m0dat, m1dat, alldat;
+            m0dat = m0->get_child_data();
+            m1dat = m1->get_child_data();
+            for(unsigned int i=0; i<m0dat.size(); i++)
+                alldat.push_back(m0dat.at(i));
+            for(unsigned int i=0; i<m1dat.size(); i++)
+                alldat.push_back(m1dat.at(i));
+            return alldat;
+        }
+    }
 
 }
 
@@ -308,29 +308,29 @@ void st_tree_node::set_address(const string &addr)
 
 //-------------------------------------------------------------------------------------------------
 void st_opt_element::set_range(double xrlo, double xrhi, double yrlo, double yrhi){
-	xr[0] = xrlo;
-	xr[1] = xrhi;
-	yr[0] = yrlo;
-	yr[1] = yrhi;
+    xr[0] = xrlo;
+    xr[1] = xrhi;
+    yr[0] = yrlo;
+    yr[1] = yrhi;
 }
 
-void st_opt_element::set_range(double *xri, double *yri){	
-	for(int i=0; i<2; i++){
-		xr[i] = xri[i];
-		yr[i] = yri[i];
-	}
+void st_opt_element::set_range(double *xri, double *yri){    
+    for(int i=0; i<2; i++){
+        xr[i] = xri[i];
+        yr[i] = yri[i];
+    }
 }
 
 st_opt_element *st_opt_element::process(string &key, int index){
-	return (st_opt_element*)m_proc(key, index);
+    return (st_opt_element*)m_proc(key, index);
 }
 
 vector<st_opt_element*> st_opt_element::get_children(){
-	vector<st_opt_element*> children;
-	vector<st_tree_node*> m_children = m_get_children();
-	for( vector<st_tree_node*>::iterator it = m_children.begin(); it != m_children.end(); it++)
-		children.push_back( (st_opt_element*) *it );
-	return children;
+    vector<st_opt_element*> children;
+    vector<st_tree_node*> m_children = m_get_children();
+    for( vector<st_tree_node*>::iterator it = m_children.begin(); it != m_children.end(); it++)
+        children.push_back( (st_opt_element*) *it );
+    return children;
 }
 
 double *st_opt_element::get_yr(){return yr;}
@@ -349,53 +349,53 @@ vector<void*>* st_opt_element::get_neighbor_data()
 //-------------------------------------------------------------------------------------------------
 st_hash_tree::st_hash_tree()
 {
-	log2inv = 1./log(2.);
+    log2inv = 1./log(2.);
 }
 
 bool st_hash_tree::create_mesh(KDLayoutData &data){
-	/*
-	Create a mesh of the heliostat field according to the performance surface
-	provided by the 'integrals' class.
-	*/
-	Data = data;
+    /*
+    Create a mesh of the heliostat field according to the performance surface
+    provided by the 'integrals' class.
+    */
+    Data = data;
         
-	//Calculate min and max recursion levels based on user zone size limitations
-	double dextx = (Data.xlim[1] - Data.xlim[0]);
-	nx_req = (int)floor( log(dextx/Data.min_unit_dx)*log2inv );
+    //Calculate min and max recursion levels based on user zone size limitations
+    double dextx = (Data.xlim[1] - Data.xlim[0]);
+    nx_req = (int)floor( log(dextx/Data.min_unit_dx)*log2inv );
     nx_req = nx_req < 1 ? 1 : nx_req;
-	double dexty = (Data.ylim[1] - Data.ylim[0]);
-	ny_req = (int)floor( log(dexty/Data.min_unit_dy)*log2inv );
+    double dexty = (Data.ylim[1] - Data.ylim[0]);
+    ny_req = (int)floor( log(dexty/Data.min_unit_dy)*log2inv );
     ny_req = ny_req < 1 ? 1 : ny_req;
 
-	//estimate the maximum number of nodes and reserve memory
-	int nmaxdivx = (int)pow(2., nx_req);		//maximum number of zones x
-	int nmaxdivy = (int)pow(2., ny_req);	//max y
-	int nmaxterm =  nmaxdivx * nmaxdivy;	//total max number of zones
-	int maxreclevel = max(nmaxdivx, nmaxdivy); //worst case max recursion level
-	int nmaxnodes = 0;
-	for(int i=0; i<maxreclevel; i++)
-		nmaxnodes += nmaxterm/(int)pow(2.,i);		//Add each level in the node tree
-	
-	//Try reserving the number of required nodes, catch any memory error
-	try
-	{
-		nodes.reserve(nmaxnodes*2); //include a 100% buffer
-	}
-	catch(...)
-	{
+    //estimate the maximum number of nodes and reserve memory
+    int nmaxdivx = (int)pow(2., nx_req);        //maximum number of zones x
+    int nmaxdivy = (int)pow(2., ny_req);    //max y
+    int nmaxterm =  nmaxdivx * nmaxdivy;    //total max number of zones
+    int maxreclevel = max(nmaxdivx, nmaxdivy); //worst case max recursion level
+    int nmaxnodes = 0;
+    for(int i=0; i<maxreclevel; i++)
+        nmaxnodes += nmaxterm/(int)pow(2.,i);        //Add each level in the node tree
+    
+    //Try reserving the number of required nodes, catch any memory error
+    try
+    {
+        nodes.reserve(nmaxnodes*2); //include a 100% buffer
+    }
+    catch(...)
+    {
         //Memory error
         return false;
-	}
-	
+    }
+    
     //set up the head node's range. This doesn't actually create the tree yet.
-	head_node.set_range(Data.xlim[0], Data.xlim[1], Data.ylim[0], Data.ylim[1]);
+    head_node.set_range(Data.xlim[0], Data.xlim[1], Data.ylim[0], Data.ylim[1]);
     
     return true;
 }
 
 string st_hash_tree::pos_to_binary_base(double x, double y){
     double res = fmin(Data.min_unit_dx, Data.min_unit_dy);
-	return pos_to_binary(x, y, res);
+    return pos_to_binary(x, y, res);
 }
 
 void st_hash_tree::reset(){
@@ -404,29 +404,29 @@ void st_hash_tree::reset(){
         Data.xlim[0] = Data.xlim[1] = Data.ylim[0] = Data.ylim[1] =
             std::numeric_limits<double>::quiet_NaN();
     
-	head_node = st_opt_element();
-	nodes.clear();
-	nx_req = -1;
-	ny_req = -1;
+    head_node = st_opt_element();
+    nodes.clear();
+    nx_req = -1;
+    ny_req = -1;
 }
 
 void st_hash_tree::get_terminal_data(vector<vector<void*>*> &retdata){
 
     for( vector<st_opt_element>::iterator it = nodes.begin(); it != nodes.end(); it++){
-		if(! it->is_terminal() ) continue;
-		retdata.push_back(it->get_array());
-	}
+        if(! it->is_terminal() ) continue;
+        retdata.push_back(it->get_array());
+    }
 }
 void st_hash_tree::get_terminal_nodes(vector<st_opt_element*> &tnodes){
 
-	tnodes.clear(); 
+    tnodes.clear(); 
 
     for(int i=0; i<(int)nodes.size(); i++){
-		if( nodes.at(i).is_terminal() )
-			tnodes.push_back(&nodes.at(i));
-	}
+        if( nodes.at(i).is_terminal() )
+            tnodes.push_back(&nodes.at(i));
+    }
 
-	return;
+    return;
 }
 
 vector<st_opt_element>* st_hash_tree::get_all_nodes()
@@ -549,12 +549,12 @@ void st_hash_tree::create_node(st_opt_element &node, int index, string &binary, 
     
     //evaluate the derivatives at the center of the element.
     double 
-		xr0 = node.get_xr()[0],
-		xr1 = node.get_xr()[1],
-		yr0 = node.get_yr()[0],
-		yr1 = node.get_yr()[1],
-		C0 = (xr0 + xr1)*0.5,
-		C1 = (yr0 + yr1)*0.5;
+        xr0 = node.get_xr()[0],
+        xr1 = node.get_xr()[1],
+        yr0 = node.get_yr()[0],
+        yr1 = node.get_yr()[1],
+        C0 = (xr0 + xr1)*0.5,
+        C1 = (yr0 + yr1)*0.5;
     double dpx, dpy;
     if( dprojected == 0)
     {
@@ -757,48 +757,48 @@ void st_hash_tree::create_node(st_opt_element &node, int index, string &binary, 
 }
 
 string st_hash_tree::pos_to_binary(double x, double y, double res){
-	/*
-	Convert an x-y position into a binary tag
-	*/
-	    
-	string tag;
+    /*
+    Convert an x-y position into a binary tag
+    */
         
-	bool x_mode = true; //start with radius
+    string tag;
         
-	double 
-		y0 = Data.ylim[0],
-		y1 = Data.ylim[1],
-		x0 = Data.xlim[0],
-		x1 = Data.xlim[1];
-	    
-	int nc = max(nx_req, ny_req)*2;
+    bool x_mode = true; //start with radius
         
-	for(int i=0; i<nc; i++){
-		if( x_mode){
-			double cx = (x0 + x1)*0.5;
-			if(x > cx){
-				x0 = cx;
-				tag.append("1");
-			}
-			else{
-				x1 = cx;
-				tag.append("0");
-			}
-		}
-		else{
-			double cy = (y0 + y1)*0.5;
-			if(y > cy){
-				y0 = cy;
-				tag.append("1");
-			}
-			else{
-				y1 = cy;
-				tag.append("0");
-			}
-		}
-		x_mode = ! x_mode;
-	}
-	return tag;
+    double 
+        y0 = Data.ylim[0],
+        y1 = Data.ylim[1],
+        x0 = Data.xlim[0],
+        x1 = Data.xlim[1];
+        
+    int nc = max(nx_req, ny_req)*2;
+        
+    for(int i=0; i<nc; i++){
+        if( x_mode){
+            double cx = (x0 + x1)*0.5;
+            if(x > cx){
+                x0 = cx;
+                tag.append("1");
+            }
+            else{
+                x1 = cx;
+                tag.append("0");
+            }
+        }
+        else{
+            double cy = (y0 + y1)*0.5;
+            if(y > cy){
+                y0 = cy;
+                tag.append("1");
+            }
+            else{
+                y1 = cy;
+                tag.append("0");
+            }
+        }
+        x_mode = ! x_mode;
+    }
+    return tag;
 }
 
 void st_hash_tree::binary_to_pos(const string &binary, double *x, double *y)
@@ -808,11 +808,11 @@ void st_hash_tree::binary_to_pos(const string &binary, double *x, double *y)
     */
     bool x_mode = true; //start with radius
         
-	double 
-		y0 = Data.ylim[0],
-		y1 = Data.ylim[1],
-		x0 = Data.xlim[0],
-		x1 = Data.xlim[1];
+    double 
+        y0 = Data.ylim[0],
+        y1 = Data.ylim[1],
+        x0 = Data.xlim[0],
+        x1 = Data.xlim[1];
 
     *x = (x0 + x1)/2.;
     *y = (y0 + y1)/2.;
