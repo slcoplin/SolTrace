@@ -626,6 +626,7 @@ int RunTraceMultiThreaded( Project *System, int nrays, int nmaxrays,
                           int nmaxthreads, int *seed, bool sunshape, bool opterrs, bool aspowertower,
                           wxArrayString &errors, bool is_cmd )
 {
+    // Check number of threads
     if (nmaxthreads < 1)
     {
         errors.Add( "invalid number of cpu threads" );
@@ -634,11 +635,13 @@ int RunTraceMultiThreaded( Project *System, int nrays, int nmaxrays,
 
     CheckSeed( seed );
 
+    // Set ncpus to min(nmaxthreads and GetCPUCount)
     size_t ncpus = wxThread::GetCPUCount();
     if (nmaxthreads >= 1 && ncpus > (size_t)nmaxthreads) ncpus = (size_t)nmaxthreads;
 
     wxThreadProgressDialog *tpd = 0;
 
+    // Show output of starting
     if( is_cmd )
     {
         wxPrintf("\nRunning simulation with %d threads...", (int)ncpus);
@@ -650,6 +653,7 @@ int RunTraceMultiThreaded( Project *System, int nrays, int nmaxrays,
         tpd->Show();
     }
 
+    // A list of threads to be run
     std::vector<TraceThread*> ThreadList;
 
     bool ok = true;
@@ -657,8 +661,10 @@ int RunTraceMultiThreaded( Project *System, int nrays, int nmaxrays,
 
     int SeedVal = *seed;
 
+    // Start contexts for each thread to exist. Add to ThreadList
     for (i=0;i<ncpus && ok==true; i++)
     {
+        // st_create_context is in coretrace::stapi
         st_context_t spcxt = ::st_create_context();
 
         int result = LoadSystemIntoContext( System, spcxt, errors );
@@ -687,7 +693,7 @@ int RunTraceMultiThreaded( Project *System, int nrays, int nmaxrays,
         return -777;
     }
 
-
+    // Start running the TraceThread elements in ThreadList
     g_currentThreadProgress = tpd;
     wxStopWatch sw;
     for (i=0;i<ThreadList.size();i++)
