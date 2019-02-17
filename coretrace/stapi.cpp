@@ -657,21 +657,30 @@ STCORE_API int st_sim_run_data( st_context_t pcxt, unsigned int seed,
 
     sys->AllRayData.Clear();
 
-    if ( !InitGeometries(sys) )
+    // Initialize the coordinate system info for the system
+    // Fails and returns if invalid system.
+    if ( !InitGeometries(sys) ) {
         return -1;
+    }
+
 
     int rayct = sys->sim_raycount;
-    if(data_s2 != 0)
-        if(data_s2->size() > 0)
+    if (data_s2 != 0) {
+        if (data_s2->size() > 0) {
             rayct = data_s2->size();
+        }
+    }
 
+    // Runs simulation
+    // Exists if failure
     if ( !Trace(sys, seed,
         rayct, sys->sim_raymax,
         sys->sim_errors_sunshape, sys->sim_errors_optical, AsPowerTower,
-        callback, cbdata, data_s1, data_s2, save_st_data) )
+        callback, cbdata, data_s1, data_s2, save_st_data) ) {
         return -1;
+    }
 
-
+    // Merge ray data
     try
     {
         for (st_uint_t i=0;i<sys->StageList.size();i++)

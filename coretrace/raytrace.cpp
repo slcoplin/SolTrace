@@ -27,9 +27,9 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the 
-*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to 
-*  any modified version of this software or any modified version of the underlying software originally 
+*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the
+*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to
+*  any modified version of this software or any modified version of the underlying software originally
 *  provided by Alliance without the prior written consent of Alliance.
 *
 *  5. The name of the copyright holder, contributors, the United States Government, the United States
@@ -70,7 +70,7 @@
 void time(const char *message, ofstream *fout)
 {
 #ifdef WITH_DEBUG_TIMER
-    (*fout) << message << chrono::duration_cast< chrono::milliseconds >( chrono::system_clock::now().time_since_epoch() ).count() << "\n"; 
+    (*fout) << message << chrono::duration_cast< chrono::milliseconds >( chrono::system_clock::now().time_since_epoch() ).count() << "\n";
 #endif
 }
 
@@ -135,9 +135,9 @@ static bool eprojdat_compare(const eprojdat &A, const eprojdat &B)
 };
 
 bool Trace(TSystem *System, unsigned int seed,
-           st_uint_t NumberOfRays, 
+           st_uint_t NumberOfRays,
            st_uint_t MaxNumberOfRays,
-           bool IncludeSunShape, 
+           bool IncludeSunShape,
            bool IncludeErrors,
            bool AsPowerTower,
            int (*callback)(st_uint_t ntracedtotal, st_uint_t ntraced, st_uint_t ntotrace, st_uint_t curstage, st_uint_t nstages, void *data),
@@ -146,15 +146,15 @@ bool Trace(TSystem *System, unsigned int seed,
            std::vector< std::vector< double > > *st1in,
            bool save_st_data)
 {
-    
+
     bool PT_override = false;        //override speed improvements (use as compiled option for benchmarking old version)
-    
-    //don't try to use the element filtering method if: 
-    if( System->StageList.size() > 0 
+
+    //don't try to use the element filtering method if:
+    if( System->StageList.size() > 0
         && (System->StageList[0]->ElementList.size() < 10    //the first stage contains only a few elements
             || System->StageList.size() == 1)                //there's only one stage
       )
-        PT_override = true;         
+        PT_override = true;
 
     bool load_st_data = st0data != 0 && st1in != 0;
     if(load_st_data)
@@ -257,15 +257,15 @@ bool Trace(TSystem *System, unsigned int seed,
 #ifdef WITH_DEBUG_TIMER
         ofstream fout("C:\\Users\\mwagner\\Documents\\NREL\\Dev\\SolTraceWX\\log.txt");
         fout.clear();
-#else 
+#else
         ofstream fout;
 #endif
 
         time("Initialize:\t", &fout);
 
-        /* 
+        /*
         Calculate hash tree for sun incoming plane.
-        
+
         Calculate hash tree for reflection to receiver plane (polar coordinates).
         */
         st_hash_tree sun_hash;
@@ -284,17 +284,17 @@ bool Trace(TSystem *System, unsigned int seed,
 
                     if(! el->Enabled)
                         continue;
-                
+
                     nelrec++;
 
                     for(int jj=0; jj<3; jj++)
-                        reccm[jj] += el->Origin[jj]; 
+                        reccm[jj] += el->Origin[jj];
                 }
                 for(int jj=0; jj<3; jj++)
                     reccm[jj] /= (double)nelrec;    //average
-            
 
-                //Transform to reference 
+
+                //Transform to reference
                 double dum1[] = {0., 0., 1.};
                 double dum2[3];
                 double reccm_global[3];
@@ -307,7 +307,7 @@ bool Trace(TSystem *System, unsigned int seed,
             vector<eprojdat> el_proj_dat;
             el_proj_dat.reserve( System->StageList[0]->ElementList.size() );
 
-            //calculate the smallest zone size. This should be on the order of the largest element in the stage. 
+            //calculate the smallest zone size. This should be on the order of the largest element in the stage.
             //load stage 0 elements into the mesh
             double d_elm_max = -9.e9;
 
@@ -345,7 +345,7 @@ bool Trace(TSystem *System, unsigned int seed,
                     d_elm =  el->ParameterB;
                     break;
                 case 'l':
-                case 'L': 
+                case 'L':
                     //off axis aperture section of line focus trough  or cylinder
                     d_elm =  sqrt(el->ParameterB*el->ParameterB*4. + el->ParameterC*el->ParameterC);
                     break;
@@ -370,10 +370,10 @@ bool Trace(TSystem *System, unsigned int seed,
                     }
 
                     double dx = xmax - xmin;
-                    double dy = ymax - ymin; 
+                    double dy = ymax - ymin;
 
                     d_elm =  sqrt(dx*dx + dy*dy);
-                
+
                     break;
                 }
                 default:
@@ -381,7 +381,7 @@ bool Trace(TSystem *System, unsigned int seed,
                 }
 
                 d_elm_max = fmax(d_elm_max, d_elm);
-                
+
                 if(AsPowerTower)
                 {
                     //Calculate the distance from the receiver to the element and the max projected size
@@ -390,10 +390,10 @@ bool Trace(TSystem *System, unsigned int seed,
                         dX[jj] = el->Origin[jj] - reccm_helio[jj];  //vector from receiver to heliostat (not unitized)
                     double r_elm = 0.;
                     for(int jj=0; jj<3; jj++)
-                        r_elm += dX[jj]*dX[jj];     
+                        r_elm += dX[jj]*dX[jj];
                     r_elm = sqrt(r_elm);            //vector length
                     double d_elm_proj = d_elm / r_elm;  //Projected size of the element from the view of the receiver (radians)
-                
+
                     //calculate az,zen coordinate
                     double az,zen;
                     az = atan2(dX[0]/r_elm, dX[1]/r_elm);       //Az coordinate of the heliostat from the receiver's perspective
@@ -422,7 +422,7 @@ bool Trace(TSystem *System, unsigned int seed,
 
             sun_hash.create_mesh( sun_ld );
             time("Adding solar mesh elements:\t", &fout);
-            
+
            //load stage 0 elements into the mesh
             for( st_uint_t i=0; i<System->StageList[0]->ElementList.size(); i++)
             {
@@ -444,7 +444,7 @@ bool Trace(TSystem *System, unsigned int seed,
                 rec_ld.ylim[1] = M_PI/2.;
                 //use smallest element to set the minimum size
                 rec_ld.min_unit_dx = rec_ld.min_unit_dy = el_proj_dat.back().d_proj; //radians at equator
-            
+
                 rec_hash.create_mesh( rec_ld );
                 time("Adding polar mesh elements:\t", &fout);
 
@@ -457,13 +457,13 @@ bool Trace(TSystem *System, unsigned int seed,
                     double angspan[2];
                     double adjmult = 1.5;
                     angspan[0] = D->d_proj/cos(fabs(D->zen))*adjmult;   //azimuthal span
-                    angspan[0] = fmin(angspan[0], 2.*M_PI);     //limit to circumference 
+                    angspan[0] = fmin(angspan[0], 2.*M_PI);     //limit to circumference
                     angspan[1] = D->d_proj/M_PI*adjmult;    //zenithal span
-                    rec_hash.add_object( (void*)D->el_addr,  D->az, D->zen, angspan);     
+                    rec_hash.add_object( (void*)D->el_addr,  D->az, D->zen, angspan);
                 }
                 time("Adding polar mesh neighbors:\t",&fout);
                 //associate neighbors with each zone
-                rec_hash.add_neighborhood_data(); 
+                rec_hash.add_neighborhood_data();
             }
         }
 
@@ -516,7 +516,7 @@ bool Trace(TSystem *System, unsigned int seed,
         fout.close();
 #endif
 
-        //use the callbacks based on elapsed time rather than fixed rays processed. 
+        //use the callbacks based on elapsed time rather than fixed rays processed.
 
         clock_t startTime = clock();     //start timer
         int rays_per_callback_estimate = 50;    //starting rough estimate for how often to check the clock
@@ -530,7 +530,7 @@ bool Trace(TSystem *System, unsigned int seed,
                 // so nothing to trace in this stage
                 goto Label_EndStageLoop;
             }
-            
+
             Stage = System->StageList[i];
 
             LastElementNumber = 0;
@@ -546,15 +546,15 @@ bool Trace(TSystem *System, unsigned int seed,
             {
                 double rpos[3],rcos[3];
                 //Stage 0 data
-                for(int j=0; j<st0data->size(); j++)   
+                for(int j=0; j<st0data->size(); j++)
                 {
-                    
-                    LoadExistingStage0Ray(j, st0data, 
+
+                    LoadExistingStage0Ray(j, st0data,
                         rpos, rcos,
                         LastElementNumber, LastRayNumber);
 
 
-                    p_ray = Stage->RayData.Append( 
+                    p_ray = Stage->RayData.Append(
                         rpos, rcos,
                         LastElementNumber, 1,
                         LastRayNumber );
@@ -576,19 +576,19 @@ bool Trace(TSystem *System, unsigned int seed,
                 System->SunRayCount = LastRayNumber;
                 goto Label_EndStageLoop;
             }
-            
 
-            
+
+            // Start of tracing
 Label_StartRayLoop:
             MultipleHitCount = 0;
             sunint_elements.clear();
 
             has_elements = true;
+            // First stage (generate)
             if ( i == 0 )
             {
 
-
-                // we are in the first stage, so 
+                // we are in the first stage, so
                 // generate a new sun ray in global coords
                 double PosRaySun[3];
                 GenerateRay(myrng, PosSunStage, Stage->Origin,
@@ -603,13 +603,14 @@ Label_StartRayLoop:
                     return false;
                 }
 
-                /* 
+                /*
                 Find the list of elements that could potentially interact with this ray. If empty, continue
                 */
                 if(! PT_override) //AsPowerTower)
                     has_elements = sun_hash.get_all_data_at_loc( sunint_elements, PosRaySun[0], PosRaySun[1] );
 
             }
+            // Other stages
             else
             {
                 // we are in a subsequent stage, so trace using an incoming ray
@@ -618,12 +619,12 @@ Label_StartRayLoop:
                 CopyVec3( PosRayGlob, IncomingRays[StageDataArrayIndex].Pos );
                 CopyVec3( CosRayGlob, IncomingRays[StageDataArrayIndex].Cos );
                 StageDataArrayIndex++;
-                
+
             }
 
             // transform the global incoming ray to local stage coordinates
-            TransformToLocal(PosRayGlob, CosRayGlob, 
-                Stage->Origin, Stage->RRefToLoc, 
+            TransformToLocal(PosRayGlob, CosRayGlob,
+                Stage->Origin, Stage->RRefToLoc,
                 PosRayStage, CosRayStage);
 
 
@@ -647,9 +648,9 @@ Label_StartRayLoop:
                                     System->StageList.size(), cbdata ))
                     return true;
             }
-            
+
             in_multi_hit_loop = false;
-            
+
 Label_MultiHitLoop:
             LastPathLength = 1e99;
             StageHit = false;
@@ -662,7 +663,7 @@ Label_MultiHitLoop:
                     if( AsPowerTower )
                     {
                         //>=Second time through - checking for first stage multiple element interactions
-                    
+
                         //get ray position in receiver polar coordinates
                         double raypvec[3];
                         for(int jj=0; jj<3; jj++)
@@ -692,9 +693,11 @@ Label_MultiHitLoop:
                         nintelements = 0;
                 }
             }
+            // If other stage, then check all elements
             else
                 nintelements = Stage->ElementList.size();
 
+            // Check for all elemnts
             for( st_uint_t j=0; j<nintelements; j++)
             {
                 TElement *Element; // = Stage->ElementList[j];
@@ -732,7 +735,7 @@ Label_MultiHitLoop:
 
                 // {Determine if ray intersects element[j]; if so, Find intersection point with surface of element[j] }
                 DetermineElementIntersectionNew(Element, PosRayElement, CosRayElement,
-                    PosRaySurfElement, CosRaySurfElement, DFXYZ, 
+                    PosRaySurfElement, CosRaySurfElement, DFXYZ,
                     &PathLength, &ErrorFlag, &InterceptFlag, &HitBackSide);
 
 
@@ -744,11 +747,11 @@ Label_MultiHitLoop:
                   //if (PathLength < LastPathLength) and (PosRaySurfElement[2] <= Element->ZAperture) then
                     if (PathLength < LastPathLength)
                     {
-                        if (PosRaySurfElement[2] <= Element->ZAperture 
+                        if (PosRaySurfElement[2] <= Element->ZAperture
                             || Element->SurfaceIndex == 'm'
                             || Element->SurfaceIndex == 'M'
                             || Element->SurfaceIndex == 'r'
-                            || Element->SurfaceIndex == 'R') 
+                            || Element->SurfaceIndex == 'R')
                         {
                             StageHit = true;
                             LastPathLength = PathLength;
@@ -757,8 +760,8 @@ Label_MultiHitLoop:
                             CopyVec3( LastDFXYZ, DFXYZ );
                             LastElementNumber = ( i == 0 && !PT_override )? Element->element_number : j+1;    //mjw change from j index to element id
                             LastRayNumber = RayNumber;
-                            TransformToReference(PosRaySurfElement, CosRaySurfElement, 
-                                Element->Origin, Element->RLocToRef, 
+                            TransformToReference(PosRaySurfElement, CosRaySurfElement,
+                                Element->Origin, Element->RLocToRef,
                                 PosRaySurfStage, CosRaySurfStage);
 
                             CopyVec3( LastPosRaySurfStage, PosRaySurfStage );
@@ -766,7 +769,7 @@ Label_MultiHitLoop:
                             LastHitBackSide = HitBackSide;
                         }
                     }
-                }            
+                }
             }
 
             //  {Logic for ray which misses stage element - Note that all rays eventually satisfy this
@@ -795,7 +798,7 @@ Label_StageHitLogic:
 
                         RayNumber++;
                         goto Label_StartRayLoop;
-                    } 
+                    }
                 }
                 else
                 {
@@ -871,11 +874,11 @@ Label_FlagMiss:
 
             // {Otherwise trace ray through interaction}
             // {Determine if backside or frontside properties should be used}
-        
+
             // trace through the interaction
             optelm = Stage->ElementList[ p_ray->element - 1 ];
             optics = 0;
-            
+
             if (LastHitBackSide)
                 optics = &optelm->Optics->Back;
             else
@@ -886,7 +889,7 @@ Label_FlagMiss:
             switch(optelm->InteractionType )
             {
             case 1: // refraction
-                TestValue = optics->Transmissivity; 
+                TestValue = optics->Transmissivity;
                 break;
             case 2: // reflection
 
@@ -979,7 +982,7 @@ Label_TransformBackToGlobal:
                 }
 
                 Interaction( myrng, LastPosRaySurfElement, LastCosRaySurfElement, LastDFXYZ,
-                    Stage->ElementList[k]->InteractionType, optics, 630.0, 
+                    Stage->ElementList[k]->InteractionType, optics, 630.0,
                     PosRayOutElement, CosRayOutElement, &ErrorFlag);
 
                 // {Apply specularity optical error to PERTURBED (i.e. after interaction) ray at intersection point}
@@ -993,11 +996,11 @@ Label_TransformBackToGlobal:
             }
 
             // { Transform ray back to stage coord system and trace through stage again}
-            TransformToReference(PosRayOutElement, CosRayOutElement, 
-                    Stage->ElementList[k]->Origin, Stage->ElementList[k]->RLocToRef, 
+            TransformToReference(PosRayOutElement, CosRayOutElement,
+                    Stage->ElementList[k]->Origin, Stage->ElementList[k]->RLocToRef,
                     PosRayStage, CosRayStage);
-            TransformToReference(PosRayStage, CosRayStage, 
-                    Stage->Origin, Stage->RLocToRef, 
+            TransformToReference(PosRayStage, CosRayStage,
+                    Stage->Origin, Stage->RLocToRef,
                     PosRayGlob, CosRayGlob);
 
             if (!Stage->MultiHitsPerRay)
@@ -1018,7 +1021,7 @@ Label_EndStageLoop:
                 //if flagged save the stage 0 incoming rays data
                 TRayData *raydat = &Stage->RayData;
                 st_uint_t nray0 = raydat->Count();
-        
+
                 for(st_uint_t ii=0; ii<nray0; ii++)
                 {
                     TRayData::ray_t *rr = raydat->Index(ii,false);
@@ -1048,7 +1051,7 @@ Label_EndStageLoop:
                     st1in->back().at(6) = IncomingRays[ir].Num;
                 }
             }
-            
+
 
             if (!PreviousStageHasRays)
             {

@@ -603,6 +603,7 @@ class TraceThread : public wxThread
             *nstages = m_nStages;
         }
 
+        // The thing that runs the code?
         virtual ExitCode Entry()
         {
             m_resultCode = ::st_sim_run( m_contextId,

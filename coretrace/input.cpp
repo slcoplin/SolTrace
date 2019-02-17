@@ -27,9 +27,9 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the 
-*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to 
-*  any modified version of this software or any modified version of the underlying software originally 
+*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the
+*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to
+*  any modified version of this software or any modified version of the underlying software originally
 *  provided by Alliance without the prior written consent of Alliance.
 *
 *  5. The name of the copyright holder, contributors, the United States Government, the United States
@@ -83,6 +83,11 @@ char *my_fgets(char *buf, int len, FILE *fp, int *line_count, int printchars)
     return ret;
 }
 
+/**
+ * Check that system inputs are valid.
+ * @param  sys [description]
+ * @return isValid
+ */
 static bool CheckInputs( TSystem *sys )
 {
     for (st_uint_t i=0;i<sys->StageList.size();i++)
@@ -149,6 +154,13 @@ static bool CheckInputs( TSystem *sys )
 }
 
 
+/**
+ * Initializes geometries of the system with the translation matrices for the
+ * coordinate system transforms.
+ *
+ * @param  sys. Input system.
+ * @return isValid {bool}. Whether the system passed some checks.
+ */
 bool InitGeometries(TSystem *sys)
 {
     for (st_uint_t i=0;i<sys->StageList.size();i++)
@@ -166,7 +178,7 @@ bool InitGeometries(TSystem *sys)
             sys->errlog("Stage %d geometry as defined not possible.\n", i);
             return false;
         }
-        
+
         dx = dx/dtot;
         dy = dy/dtot;
         dz = dz/dtot;
@@ -176,10 +188,11 @@ bool InitGeometries(TSystem *sys)
         //calculate transformation matrices for sys and place into memory
         CalculateTransformMatrices(stage->Euler, stage->RRefToLoc, stage->RLocToRef);
 
+        // For each element, get the transform matrices of the elements to
         for (st_uint_t j=0;j<stage->ElementList.size();j++)
         {
             TElement *elm = stage->ElementList[j];
-            
+
             dx = elm->AimPoint[0]-elm->Origin[0];
             dy = elm->AimPoint[1]-elm->Origin[1];
             dz = elm->AimPoint[2]-elm->Origin[2];
@@ -189,7 +202,7 @@ bool InitGeometries(TSystem *sys)
                 sys->errlog("Stage %d element %d geometry as defined not possible.\n", i, j);
                 return false;
             }
-            
+
             dx = dx/dtot;
             dy = dy/dtot;
             dz = dz/dtot;
@@ -199,7 +212,8 @@ bool InitGeometries(TSystem *sys)
             CalculateTransformMatrices( elm->Euler, elm->RRefToLoc, elm->RLocToRef );
 
             double v11,v12,v21,v22,v31,v32,v41,v42,v1m,v2m,v3m,v4m,Theta1,Theta2;
-            
+
+            // Find aperture area
             switch( elm->ShapeIndex )
             {
             case 'c': case 'C': // circular aperture
@@ -220,7 +234,7 @@ bool InitGeometries(TSystem *sys)
             case 'l': case 'L': // off axis section
                 elm->ApertureArea = (elm->ParameterB - elm->ParameterA)*elm->ParameterC;
                 break;
-            case 'i': case 'I': // irregular triangle            
+            case 'i': case 'I': // irregular triangle
                 v11 =  elm->ParameterA-elm->ParameterC;
                 v12 =  elm->ParameterB-elm->ParameterD;
                 v21 =  elm->ParameterE-elm->ParameterC;
@@ -251,7 +265,8 @@ bool InitGeometries(TSystem *sys)
                 sys->errlog("invalid shape '%c' for aperture, element %d\n", elm->ShapeIndex, j);
                 return false;
             }
-            
+
+            // Find optical properties
             if (!stage->Virtual)
             {
                 // locate element optical properties
@@ -303,13 +318,13 @@ bool TranslateSurfaceParams( TSystem *sys, TElement *elm, double params[8])
         elm->VertexCurvX = params[0];
         elm->VertexCurvY = params[1];
         elm->Kappa = 0.0;
-        elm->SurfaceType = ( elm->VertexCurvY==0.0 ) ? 7 : 1;                    
+        elm->SurfaceType = ( elm->VertexCurvY==0.0 ) ? 7 : 1;
         break;
     case 'o': case 'O': // other than sphere or parabola
         elm->VertexCurvX = params[0];
         elm->VertexCurvY = params[0];
         elm->Kappa = params[1];
-        elm->SurfaceType = ( elm->VertexCurvY==0.0 ) ? 7 : 1;                    
+        elm->SurfaceType = ( elm->VertexCurvY==0.0 ) ? 7 : 1;
         break;
     case 'g': case 'G': // general spencer & murty
         elm->VertexCurvX = params[0];
@@ -320,7 +335,7 @@ bool TranslateSurfaceParams( TSystem *sys, TElement *elm, double params[8])
         elm->Alpha[2] = params[5];
         elm->Alpha[3] = params[6];
         elm->Alpha[4] = params[7];
-        elm->SurfaceType = ( elm->VertexCurvY==0.0 ) ? 7 : 1;    
+        elm->SurfaceType = ( elm->VertexCurvY==0.0 ) ? 7 : 1;
         break;
     case 'f': case 'F': // flat
         elm->Alpha[0] = 0;
@@ -402,7 +417,7 @@ bool ReadSurfaceFile( const char *file, TElement *elm , TSystem *sys)
         {
             for (int m=0;m<=k;m++)
             {
-                READLN; 
+                READLN;
                 elm->BCoefficients.at( k, m ) = atof( line );
             }
         }
@@ -414,7 +429,7 @@ bool ReadSurfaceFile( const char *file, TElement *elm , TSystem *sys)
     else if (strcmp(ext, "sht")==0)
     {
         READLN; // skip first line (file name)
-        READLN; sscanf(line, "%lg %lg %lg", 
+        READLN; sscanf(line, "%lg %lg %lg",
             &elm->VSHOTRadius, &elm->VSHOTFocLen, &elm->VSHOTTarDis);
 
         int Order=0, NumPoints=0, idum;
@@ -531,7 +546,7 @@ bool ReadSurfaceFile( const char *file, TElement *elm , TSystem *sys)
         sys->errlog("Surface file type extension unknown: '%s'\n", ext);
         return false;
     }
-    
+
     elm->SurfaceFile = file;
 
     fclose(fp);
