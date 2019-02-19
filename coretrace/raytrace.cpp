@@ -162,6 +162,50 @@ static bool eprojdat_compare(const eprojdat &A, const eprojdat &B)
     return A.d_proj > B.d_proj;
 };
 
+
+/*
+ * Checks for cancel and updates progress bar with callback.
+ * May modify rays_per_callback_estimate.
+ *
+ * Inputs: Variables as defined in Trace.
+ *
+ * Return: Returns whether the callback asks to be cancelled. (true if cancel, false if no cancel)
+ *
+ */
+bool CheckForCancelAndUpdateProgressBar(TSystem *System,
+										int (*callback)(st_uint_t ntracedtotal, st_uint_t ntraced, st_uint_t ntotrace, st_uint_t curstage, st_uint_t nstages, void *data),
+										void *cbdata,
+										int *rays_per_callback_estimate_ptr,
+										clock_t startTime,
+										st_uint_t RayNumber,
+										st_uint_t RaysTracedTotal,
+										st_uint_t LastRayNumberInPreviousStage,
+										st_uint_t cur_stage_i
+										) {
+	if (callback != 0
+		&& RaysTracedTotal % *rays_per_callback_estimate_ptr == 0)
+	{
+		if( RaysTracedTotal > 1 )
+		{
+			//update how often to call this
+			double msec_per_ray = 1000.*( clock() - startTime ) / CLOCKS_PER_SEC / (double)(RaysTracedTotal > 0 ? RaysTracedTotal : 1);
+			//set the new callback estimate to be about 50 ms
+			*rays_per_callback_estimate_ptr = (int)( 200. / msec_per_ray );
+			//limit to something reasonable
+			*rays_per_callback_estimate_ptr = *rays_per_callback_estimate_ptr < 5 ? 5 : *rays_per_callback_estimate_ptr;
+		}
+
+		//do the callback
+		if ( ! (*callback)( RaysTracedTotal, RayNumber,
+							LastRayNumberInPreviousStage, cur_stage_i+1,
+							System->StageList.size(), cbdata )){
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool Trace(TSystem *System, unsigned int seed,
            st_uint_t NumberOfRays,
            st_uint_t MaxNumberOfRays,
@@ -636,26 +680,13 @@ Label_StartRayLoop:
 				ray.PosRayStage, ray.CosRayStage);
 
 
-            // CheckForCancelAndUpdateProgressBar
-            if (callback != 0
-                && RaysTracedTotal++ % rays_per_callback_estimate == 0)
-            {
-                if( RaysTracedTotal > 1 )
-                {
-                    //update how often to call this
-                    double msec_per_ray = 1000.*( clock() - startTime ) / CLOCKS_PER_SEC / (double)(RaysTracedTotal > 0 ? RaysTracedTotal : 1);
-                    //set the new callback estimate to be about 50 ms
-                    rays_per_callback_estimate = (int)( 200. / msec_per_ray );
-                    //limit to something reasonable
-                    rays_per_callback_estimate = rays_per_callback_estimate < 5 ? 5 : rays_per_callback_estimate;
-                }
-
-                //do the callback
-                if ( ! (*callback)( RaysTracedTotal, RayNumber,
-                                    LastRayNumberInPreviousStage, cur_stage_i+1,
-                                    System->StageList.size(), cbdata ))
-                    return true;
-            }
+            // Increment RaysTracedTotal then check callback
+            RaysTracedTotal++;
+            bool cancel = CheckForCancelAndUpdateProgressBar(System, callback, cbdata,
+            									&rays_per_callback_estimate,
+												startTime, RayNumber, RaysTracedTotal,
+												LastRayNumberInPreviousStage, cur_stage_i);
+            if (cancel) {return true;}
 
             in_multi_hit_loop = false;
 
