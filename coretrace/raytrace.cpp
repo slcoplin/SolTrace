@@ -630,13 +630,13 @@ bool Trace(TSystem *System, unsigned int seed,
             }
 
 
-            // Start of tracing
+            // Start of one ray's tracing
 Label_StartRayLoop:
             MultipleHitCount = 0;
             sunint_elements.clear();
 
             has_elements = true;
-            // First stage (generate)
+            // First stage. Generate a ray and get elements that could interact
             if ( cur_stage_i == 0 )
             {
 
@@ -662,7 +662,7 @@ Label_StartRayLoop:
                     has_elements = sun_hash.get_all_data_at_loc( sunint_elements, PosRaySun[0], PosRaySun[1] );
 
             }
-            // Other stages
+            // Other stages. Load the ray from the previous stage.
             else
             {
                 // we are in a subsequent stage, so trace using an incoming ray
@@ -695,6 +695,8 @@ Label_MultiHitLoop:
             StageHit = false;
 
             st_uint_t nintelements;
+            std::vector<TElement*> element_list;
+            // Find number of elements to check intersections with, and set element_list
             if( cur_stage_i==0 && !PT_override)
             {
                 if( in_multi_hit_loop )
@@ -717,43 +719,51 @@ Label_MultiHitLoop:
                         nintelements = reflint_elements.size();
                         has_elements = nintelements > 0;
 
+                        // Set element_list to reflint_elements
+                        element_list = (std::vector<TElement*>) reflint_elements;
+
                     }
                     else
                     {
                         nintelements = Stage->ElementList.size();
+
+                        // Set element_list to Stage->ElementList
+                        element_list = (std::vector<TElement*>) Stage->ElementList;
                     }
                 }
                 else
                 {
                     //First time through - checking for sun ray intersections
                     if( has_elements )
+                    {
                         nintelements = sunint_elements.size();
+
+						// Set element_list to sunint_elements
+						element_list = (std::vector<TElement*>) sunint_elements;
+                    }
                     else
+                    {
                         nintelements = 0;
+
+                        // No element_list because no elements
+                    }
                 }
             }
             // If other stage, then check all elements
             else
+            {
                 nintelements = Stage->ElementList.size();
 
-            // Check for all elements
+                // Set element_list to Stage->ElementList
+                element_list = (std::vector<TElement*>) Stage->ElementList;
+            }
+
+            // Check for intersections with all elements
+            // checkIntersectionInStage(){
             for( st_uint_t j=0; j<nintelements; j++)
             {
-                TElement *Element; // = Stage->ElementList[j];
-                if( cur_stage_i == 0 && !PT_override )
-                {
-                    if( in_multi_hit_loop )
-                    {
-                        if( AsPowerTower )
-                            Element = (TElement*)reflint_elements.at(j);
-                        else
-                            Element = (TElement*)Stage->ElementList[j];
-                    }
-                    else
-                        Element = (TElement*)sunint_elements.at(j);
-                }
-                else
-                    Element = Stage->ElementList[j];
+                TElement *Element;
+                Element = element_list[j];
 
                 if (!Element->Enabled)
                     continue;
