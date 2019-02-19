@@ -110,6 +110,34 @@ public:
     st_uint_t Num;
 };
 
+struct Ray
+{
+    double PosRayOutElement[3] = { 0.0, 0.0, 0.0 };
+    double CosRayOutElement[3] = { 0.0, 0.0, 0.0 };
+    double CosIn[3] = { 0.0, 0.0, 0.0 };
+    double CosOut[3] = { 0.0, 0.0, 0.0 };
+    double PosRayGlob[3] = { 0.0, 0.0, 0.0 };
+    double CosRayGlob[3] = { 0.0, 0.0, 0.0 };
+    double PosRayStage[3] = { 0.0, 0.0, 0.0 };
+    double CosRayStage[3] = { 0.0, 0.0, 0.0 };
+    double PosRayElement[3] = { 0.0, 0.0, 0.0 };
+    double CosRayElement[3] = { 0.0, 0.0, 0.0 };
+    double PosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
+    double CosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
+    double LastPosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
+    double LastCosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
+    double LastPosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
+    double LastCosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
+    double PosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
+    double CosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
+    double DFXYZ[3] = { 0.0, 0.0, 0.0 };
+    double LastDFXYZ[3] = { 0.0, 0.0, 0.0 };
+    double LastDFXYZ[3] = { 0.0, 0.0, 0.0 };
+    double IncidentAngle = 0.0;
+    double UnitLastDFXYZ[3] = { 0.0, 0.0, 0.0 };
+    int ErrorFlag = 0, InterceptFlag = 0, HitBackSide = 0, LastHitBackSide = 0;
+};
+
 //structure to store element address and projected polar coordinate size
 struct eprojdat
 {
@@ -166,30 +194,10 @@ bool Trace(TSystem *System, unsigned int seed,
     st_uint_t MultipleHitCount = 0;
     double LastPathLength = 0.0, PathLength = 0.0;
 
-    double PosSunStage[3] = { 0.0, 0.0, 0.0 };
-    double PosRayOutElement[3] = { 0.0, 0.0, 0.0 };
-    double CosRayOutElement[3] = { 0.0, 0.0, 0.0 };
-    double CosIn[3] = { 0.0, 0.0, 0.0 };
-    double CosOut[3] = { 0.0, 0.0, 0.0 };
-    double PosRayGlob[3] = { 0.0, 0.0, 0.0 };
-    double CosRayGlob[3] = { 0.0, 0.0, 0.0 };
-    double PosRayStage[3] = { 0.0, 0.0, 0.0 };
-    double CosRayStage[3] = { 0.0, 0.0, 0.0 };
-    double PosRayElement[3] = { 0.0, 0.0, 0.0 };
-    double CosRayElement[3] = { 0.0, 0.0, 0.0 };
-    double PosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
-    double CosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
-    double LastPosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
-    double LastCosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
-    double LastPosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
-    double LastCosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
-    double PosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
-    double CosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
-    double DFXYZ[3] = { 0.0, 0.0, 0.0 };
-    double LastDFXYZ[3] = { 0.0, 0.0, 0.0 };
-    double IncidentAngle = 0.0;
-    double UnitLastDFXYZ[3] = { 0.0, 0.0, 0.0 };
-    int ErrorFlag = 0, InterceptFlag = 0, HitBackSide = 0, LastHitBackSide = 0;
+    System->Sun.PosSunStage = { 0.0, 0.0, 0.0 };
+
+    // Initialize ray variables
+    Ray ray;
 
     std::vector<GlobalRay> IncomingRays;
     st_uint_t StageDataArrayIndex=0;
@@ -197,8 +205,8 @@ bool Trace(TSystem *System, unsigned int seed,
     st_uint_t PreviousStageDataArrayIndex = 0;
     st_uint_t LastRayNumberInPreviousStage = NumberOfRays;
 
-    ZeroVec( LastPosRaySurfStage );
-    ZeroVec( LastCosRaySurfStage );
+    ZeroVec( ray.LastPosRaySurfStage );
+    ZeroVec( ray.LastCosRaySurfStage );
 
     //bool aspowertower_ok = false;
     bool in_multi_hit_loop = false;
@@ -251,7 +259,7 @@ bool Trace(TSystem *System, unsigned int seed,
         }
 
 
-        if (!SunToPrimaryStage(System, System->StageList[0], &System->Sun, PosSunStage))
+        if (!SunToPrimaryStage(System, System->StageList[0], &System->Sun, System->Sun.PosSunStage))
             return false;
 
 #ifdef WITH_DEBUG_TIMER
@@ -521,28 +529,28 @@ bool Trace(TSystem *System, unsigned int seed,
         clock_t startTime = clock();     //start timer
         int rays_per_callback_estimate = 50;    //starting rough estimate for how often to check the clock
 
-        for (st_uint_t i=0;i<System->StageList.size();i++)
+        for (st_uint_t cur_stage_i=0;cur_stage_i<System->StageList.size();cur_stage_i++)
         {
 
-            if (i > 0 && PreviousStageHasRays == false)
+            if (cur_stage_i > 0 && PreviousStageHasRays == false)
             {
                 // no rays to pass through from previous stage
                 // so nothing to trace in this stage
                 goto Label_EndStageLoop;
             }
 
-            Stage = System->StageList[i];
+            Stage = System->StageList[cur_stage_i];
 
             LastElementNumber = 0;
             LastRayNumber = 0;
-            LastHitBackSide = 0;
+            ray.LastHitBackSide = 0;
 
             StageDataArrayIndex = 0;
             PreviousStageDataArrayIndex = 0;
 
 
             //if loading stage 0 data, construct appropriate arrays here
-            if(i==0 && load_st_data)
+            if(cur_stage_i==0 && load_st_data)
             {
                 double rpos[3],rcos[3];
                 //Stage 0 data
@@ -585,15 +593,15 @@ Label_StartRayLoop:
 
             has_elements = true;
             // First stage (generate)
-            if ( i == 0 )
+            if ( cur_stage_i == 0 )
             {
 
                 // we are in the first stage, so
                 // generate a new sun ray in global coords
                 double PosRaySun[3];
-                GenerateRay(myrng, PosSunStage, Stage->Origin,
+                GenerateRay(myrng, System->Sun.PosSunStage, Stage->Origin,
                             Stage->RLocToRef, &System->Sun,
-                            PosRayGlob, CosRayGlob, PosRaySun);
+							ray.PosRayGlob, ray.CosRayGlob, PosRaySun);
                     System->SunRayCount++;
 
 
@@ -616,16 +624,16 @@ Label_StartRayLoop:
                 // we are in a subsequent stage, so trace using an incoming ray
                 // saved from the previous stages
                 RayNumber = IncomingRays[StageDataArrayIndex].Num;
-                CopyVec3( PosRayGlob, IncomingRays[StageDataArrayIndex].Pos );
-                CopyVec3( CosRayGlob, IncomingRays[StageDataArrayIndex].Cos );
+                CopyVec3( ray.PosRayGlob, IncomingRays[StageDataArrayIndex].Pos );
+                CopyVec3( ray.CosRayGlob, IncomingRays[StageDataArrayIndex].Cos );
                 StageDataArrayIndex++;
 
             }
 
             // transform the global incoming ray to local stage coordinates
-            TransformToLocal(PosRayGlob, CosRayGlob,
+            TransformToLocal(ray.PosRayGlob, ray.CosRayGlob,
                 Stage->Origin, Stage->RRefToLoc,
-                PosRayStage, CosRayStage);
+				ray.PosRayStage, ray.CosRayStage);
 
 
             // CheckForCancelAndUpdateProgressBar
@@ -644,7 +652,7 @@ Label_StartRayLoop:
 
                 //do the callback
                 if ( ! (*callback)( RaysTracedTotal, RayNumber,
-                                    LastRayNumberInPreviousStage, i+1,
+                                    LastRayNumberInPreviousStage, cur_stage_i+1,
                                     System->StageList.size(), cbdata ))
                     return true;
             }
@@ -656,7 +664,7 @@ Label_MultiHitLoop:
             StageHit = false;
 
             st_uint_t nintelements;
-            if( i==0 && !PT_override)
+            if( cur_stage_i==0 && !PT_override)
             {
                 if( in_multi_hit_loop )
                 {
@@ -667,7 +675,7 @@ Label_MultiHitLoop:
                         //get ray position in receiver polar coordinates
                         double raypvec[3];
                         for(int jj=0; jj<3; jj++)
-                            raypvec[jj] = PosRayStage[jj] - reccm_helio[jj];
+                            raypvec[jj] = ray.PosRayStage[jj] - reccm_helio[jj];
                         double raypvecmag = sqrt(raypvec[0]*raypvec[0] + raypvec[1]*raypvec[1] + raypvec[2]*raypvec[2]);
                         double raypol[2];
                         raypol[0] = atan2(raypvec[0], raypvec[1]);
@@ -697,11 +705,11 @@ Label_MultiHitLoop:
             else
                 nintelements = Stage->ElementList.size();
 
-            // Check for all elemnts
+            // Check for all elements
             for( st_uint_t j=0; j<nintelements; j++)
             {
                 TElement *Element; // = Stage->ElementList[j];
-                if( i == 0 && !PT_override )
+                if( cur_stage_i == 0 && !PT_override )
                 {
                     if( in_multi_hit_loop )
                     {
@@ -720,34 +728,34 @@ Label_MultiHitLoop:
                     continue;
 
                 //  {Transform ray to element[j] coord system of Stage[i]}
-                TransformToLocal( PosRayStage, CosRayStage,
+                TransformToLocal( ray.PosRayStage, ray.CosRayStage,
                                   Element->Origin, Element->RRefToLoc,
-                                  PosRayElement, CosRayElement);
+								  ray.PosRayElement, ray.CosRayElement);
 
-                ErrorFlag = 0;
-                HitBackSide = 0;
-                InterceptFlag = 0;
+                ray.ErrorFlag = 0;
+                ray.HitBackSide = 0;
+                ray.InterceptFlag = 0;
 
                 // increment position by tiny amount to get off the element if tracing to the same element
-                PosRayElement[0] = PosRayElement[0] + 1.0e-5*CosRayElement[0];
-                PosRayElement[1] = PosRayElement[1] + 1.0e-5*CosRayElement[1];
-                PosRayElement[2] = PosRayElement[2] + 1.0e-5*CosRayElement[2];
+                for (int i = 0; i < 3; i++) {
+                	ray.PosRayElement[i] = ray.PosRayElement[i] + 1.0e-5*ray.CosRayElement[i];
+                }
 
                 // {Determine if ray intersects element[j]; if so, Find intersection point with surface of element[j] }
-                DetermineElementIntersectionNew(Element, PosRayElement, CosRayElement,
-                    PosRaySurfElement, CosRaySurfElement, DFXYZ,
-                    &PathLength, &ErrorFlag, &InterceptFlag, &HitBackSide);
+                DetermineElementIntersectionNew(Element, ray.PosRayElement, ray.CosRayElement,
+                		ray.PosRaySurfElement, ray.CosRaySurfElement, ray.DFXYZ,
+                    &PathLength, &ray.ErrorFlag, &ray.InterceptFlag, &ray.HitBackSide);
 
 
 
-                if (InterceptFlag)
+                if (ray.InterceptFlag)
                 {
                   //{If hit multiple elements, this loop determines which one hit first.
                   //Also makes sure that correct part of closed surface is hit. Also, handles wavy, but close to flat zernikes and polynomials correctly.}
                   //if (PathLength < LastPathLength) and (PosRaySurfElement[2] <= Element->ZAperture) then
                     if (PathLength < LastPathLength)
                     {
-                        if (PosRaySurfElement[2] <= Element->ZAperture
+                        if (ray.PosRaySurfElement[2] <= Element->ZAperture
                             || Element->SurfaceIndex == 'm'
                             || Element->SurfaceIndex == 'M'
                             || Element->SurfaceIndex == 'r'
@@ -755,18 +763,18 @@ Label_MultiHitLoop:
                         {
                             StageHit = true;
                             LastPathLength = PathLength;
-                            CopyVec3( LastPosRaySurfElement, PosRaySurfElement );
-                            CopyVec3( LastCosRaySurfElement, CosRaySurfElement );
-                            CopyVec3( LastDFXYZ, DFXYZ );
-                            LastElementNumber = ( i == 0 && !PT_override )? Element->element_number : j+1;    //mjw change from j index to element id
+                            CopyVec3( ray.LastPosRaySurfElement, ray.PosRaySurfElement );
+                            CopyVec3( ray.LastCosRaySurfElement, ray.CosRaySurfElement );
+                            CopyVec3( ray.LastDFXYZ, ray.DFXYZ );
+                            LastElementNumber = ( cur_stage_i == 0 && !PT_override )? Element->element_number : j+1;    //mjw change from j index to element id
                             LastRayNumber = RayNumber;
-                            TransformToReference(PosRaySurfElement, CosRaySurfElement,
+                            TransformToReference(ray.PosRaySurfElement, ray.CosRaySurfElement,
                                 Element->Origin, Element->RLocToRef,
-                                PosRaySurfStage, CosRaySurfStage);
+								ray.PosRaySurfStage, ray.CosRaySurfStage);
 
-                            CopyVec3( LastPosRaySurfStage, PosRaySurfStage );
-                            CopyVec3( LastCosRaySurfStage, CosRaySurfStage );
-                            LastHitBackSide = HitBackSide;
+                            CopyVec3( ray.LastPosRaySurfStage, ray.PosRaySurfStage );
+                            CopyVec3( ray.LastCosRaySurfStage, ray.CosRaySurfStage );
+                            ray.LastHitBackSide = ray.HitBackSide;
                         }
                     }
                 }
@@ -778,7 +786,7 @@ Label_StageHitLogic:
 
             if ( !StageHit )
             {
-                if ( i == 0 ) // first stage only
+                if ( cur_stage_i == 0 ) // first stage only
                 {
                     if (MultipleHitCount == 0)
                         goto Label_StartRayLoop; // ray misses 1st stage completely so get a new sun ray
@@ -786,8 +794,8 @@ Label_StageHitLogic:
                     {
 
                         // at least one hit on stage, so move on to next ray
-                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Pos, PosRayGlob );
-                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Cos, CosRayGlob );
+                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Pos, ray.PosRayGlob );
+                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Cos, ray.CosRayGlob );
                         IncomingRays[PreviousStageDataArrayIndex].Num = RayNumber;
 
                         if (RayNumber == NumberOfRays)
@@ -806,8 +814,8 @@ Label_StageHitLogic:
                     if (Stage->TraceThrough || MultipleHitCount > 0)
                     {
 
-                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Pos, PosRayGlob );
-                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Cos, CosRayGlob );
+                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Pos, ray.PosRayGlob );
+                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Cos, ray.CosRayGlob );
                         IncomingRays[PreviousStageDataArrayIndex].Num = RayNumber;
 
                         if (RayNumber == LastRayNumberInPreviousStage)
@@ -824,15 +832,15 @@ Label_StageHitLogic:
 Label_FlagMiss:
                     LastElementNumber = 0;
                     LastRayNumber = RayNumber;
-                    CopyVec3(LastPosRaySurfStage, PosRayStage);
-                    CopyVec3(LastCosRaySurfStage, CosRayStage);
+                    CopyVec3(ray.LastPosRaySurfStage, ray.PosRayStage);
+                    CopyVec3(ray.LastCosRaySurfStage, ray.CosRayStage);
                 }
             } // end of not stagehit logic
 
-            p_ray = Stage->RayData.Append( LastPosRaySurfStage,
-                                  LastCosRaySurfStage,
+            p_ray = Stage->RayData.Append( ray.LastPosRaySurfStage,
+                                  ray.LastCosRaySurfStage,
                                   LastElementNumber,
-                                  i+1,
+                                  cur_stage_i+1,
                                   LastRayNumber );
 
             if (!p_ray)
@@ -858,7 +866,7 @@ Label_FlagMiss:
                 }
                 else
                 {
-                    if (i == 0) RayNumber++; // generate new sun ray
+                    if (cur_stage_i == 0) RayNumber++; // generate new sun ray
                     goto Label_StartRayLoop;
                 }
             }
@@ -867,8 +875,8 @@ Label_FlagMiss:
 
             if ( Stage->Virtual )
             {
-                CopyVec3(PosRayOutElement, LastPosRaySurfElement);
-                CopyVec3(CosRayOutElement, LastCosRaySurfElement);
+                CopyVec3(ray.PosRayOutElement, ray.LastPosRaySurfElement);
+                CopyVec3(ray.CosRayOutElement, ray.LastCosRaySurfElement);
                 goto Label_TransformBackToGlobal;
             }
 
@@ -879,7 +887,7 @@ Label_FlagMiss:
             optelm = Stage->ElementList[ p_ray->element - 1 ];
             optics = 0;
 
-            if (LastHitBackSide)
+            if (ray.LastHitBackSide)
                 optics = &optelm->Optics->Back;
             else
                 optics = &optelm->Optics->Front;
@@ -897,17 +905,18 @@ Label_FlagMiss:
                 {
                     int npoints = optics->ReflectivityTable.size();
                     int m = 0;
-                    UnitLastDFXYZ[0] = -LastDFXYZ[0]/sqrt(DOT(LastDFXYZ,LastDFXYZ));
-                    UnitLastDFXYZ[1] = -LastDFXYZ[1]/sqrt(DOT(LastDFXYZ,LastDFXYZ));
-                    UnitLastDFXYZ[2] = -LastDFXYZ[2]/sqrt(DOT(LastDFXYZ,LastDFXYZ));
-                    IncidentAngle = acos(DOT(LastCosRaySurfElement,UnitLastDFXYZ));
-                    if (IncidentAngle >= optics->ReflectivityTable[ npoints-1 ].angle )
+                    for (int i = 0; i < 3; i++) {
+                    	ray.UnitLastDFXYZ[i] = -ray.LastDFXYZ[i]/sqrt(DOT(ray.LastDFXYZ, ray.LastDFXYZ));
+                    }
+
+                    ray.IncidentAngle = acos(DOT(ray.LastCosRaySurfElement, ray.UnitLastDFXYZ));
+                    if (ray.IncidentAngle >= optics->ReflectivityTable[ npoints-1 ].angle )
                     {
                         TestValue = optics->ReflectivityTable[ npoints-1 ].refl;
                     }
                     else
                     {
-                        while ( optics->ReflectivityTable[m].angle < IncidentAngle )
+                        while ( optics->ReflectivityTable[m].angle < ray.IncidentAngle )
                             m++;
 
                         if (m == 0)
@@ -920,7 +929,7 @@ Label_FlagMiss:
                     TestValue = optics->Reflectivity;
                 break;
             default:
-                System->errlog("Bad optical interaction type = %d (stage %d)",i,optelm->InteractionType);
+                System->errlog("Bad optical interaction type = %d (stage %d)",cur_stage_i,optelm->InteractionType);
                 return false;
             }
 
@@ -943,7 +952,7 @@ Label_FlagMiss:
                 }
                 else
                 {
-                    if (i == 0)
+                    if (cur_stage_i == 0)
                     {
                         if (RayNumber == NumberOfRays)
                             goto Label_EndStageLoop;
@@ -960,48 +969,48 @@ Label_TransformBackToGlobal:
 
             if ( !Stage->Virtual )
             {
-                if (IncludeSunShape && i == 0 && MultipleHitCount == 1)//change to account for first hit only in primary stage 8-11-31
+                if (IncludeSunShape && cur_stage_i == 0 && MultipleHitCount == 1)//change to account for first hit only in primary stage 8-11-31
                 {
                     // Apply sunshape to UNPERTURBED ray at intersection point
                     //only apply sunshape error once for primary stage
-                    CopyVec3(CosIn, LastCosRaySurfElement);
-                    Errors(myrng, CosIn, 1, &System->Sun,
-                           Stage->ElementList[k], optics, CosOut, LastDFXYZ);  //sun shape
-                    CopyVec3(LastCosRaySurfElement, CosOut);
+                    CopyVec3(ray.CosIn, ray.LastCosRaySurfElement);
+                    Errors(myrng, ray.CosIn, 1, &System->Sun,
+                           Stage->ElementList[k], optics, ray.CosOut, ray.LastDFXYZ);  //sun shape
+                    CopyVec3(ray.LastCosRaySurfElement, ray.CosOut);
                 }
 
                 //{Determine interaction at surface and direction of perturbed ray}
-                ErrorFlag = 0;
+                ray.ErrorFlag = 0;
 
                 // {Apply surface normal errors to surface normal before interaction ray at intersection point - Wendelin 11-23-09}
                 if( IncludeErrors )
                 {
-                    CopyVec3( CosIn, CosRayOutElement );
-                    SurfaceNormalErrors(myrng, LastDFXYZ, optics, CosOut);  //surface normal errors
-                    CopyVec3( LastDFXYZ, CosOut );
+                    CopyVec3( ray.CosIn, ray.CosRayOutElement );
+                    SurfaceNormalErrors(myrng, ray.LastDFXYZ, optics, ray.CosOut);  //surface normal errors
+                    CopyVec3( ray.LastDFXYZ, ray.CosOut );
                 }
 
-                Interaction( myrng, LastPosRaySurfElement, LastCosRaySurfElement, LastDFXYZ,
+                Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
                     Stage->ElementList[k]->InteractionType, optics, 630.0,
-                    PosRayOutElement, CosRayOutElement, &ErrorFlag);
+					ray.PosRayOutElement, ray.CosRayOutElement, &ray.ErrorFlag);
 
                 // {Apply specularity optical error to PERTURBED (i.e. after interaction) ray at intersection point}
                 if( IncludeErrors )
                 {
-                    CopyVec3(CosIn, CosRayOutElement);
-                    Errors(myrng, CosIn, 2, &System->Sun,
-                           Stage->ElementList[k], optics, CosOut, LastDFXYZ);  //optical errors
-                    CopyVec3(CosRayOutElement, CosOut);
+                    CopyVec3(ray.CosIn, ray.CosRayOutElement);
+                    Errors(myrng, ray.CosIn, 2, &System->Sun,
+                           Stage->ElementList[k], optics, ray.CosOut, ray.LastDFXYZ);  //optical errors
+                    CopyVec3(ray.CosRayOutElement, ray.CosOut);
                 }
             }
 
             // { Transform ray back to stage coord system and trace through stage again}
-            TransformToReference(PosRayOutElement, CosRayOutElement,
+            TransformToReference(ray.PosRayOutElement, ray.CosRayOutElement,
                     Stage->ElementList[k]->Origin, Stage->ElementList[k]->RLocToRef,
-                    PosRayStage, CosRayStage);
-            TransformToReference(PosRayStage, CosRayStage,
+					ray.PosRayStage, ray.CosRayStage);
+            TransformToReference(ray.PosRayStage, ray.CosRayStage,
                     Stage->Origin, Stage->RLocToRef,
-                    PosRayGlob, CosRayGlob);
+					ray.PosRayGlob, ray.CosRayGlob);
 
             if (!Stage->MultiHitsPerRay)
             {
@@ -1016,7 +1025,7 @@ Label_TransformBackToGlobal:
 
 Label_EndStageLoop:
 
-            if(i==0 && save_st_data)
+            if(cur_stage_i==0 && save_st_data)
             {
                 //if flagged save the stage 0 incoming rays data
                 TRayData *raydat = &Stage->RayData;
@@ -1037,7 +1046,7 @@ Label_EndStageLoop:
                 }
             }
 
-            if(i==1 && save_st_data)
+            if(cur_stage_i==1 && save_st_data)
             {
                 //if flagged, save the stage 1 incoming rays data to the data structure passed into the algorithm
                 for(int ir=0; ir<StageDataArrayIndex; ir++)
@@ -1065,7 +1074,7 @@ Label_EndStageLoop:
                 if (LastRayNumberInPreviousStage == 0)
                 {
                     size_t pp = IncomingRays[PreviousStageDataArrayIndex-1].Num;
-                    System->errlog("LastRayNumberInPreviousStage=0, stage %d, PrevIdx=%d, CurIdx=%d, pp=%d", i+1,
+                    System->errlog("LastRayNumberInPreviousStage=0, stage %d, PrevIdx=%d, CurIdx=%d, pp=%d", cur_stage_i+1,
                                         PreviousStageDataArrayIndex, StageDataArrayIndex, pp);
                     return false;
                 }
@@ -1073,7 +1082,7 @@ Label_EndStageLoop:
             else
             {
                 System->errlog("Invalid PreviousStageDataArrayIndex: %u, @ stage %d",
-                               PreviousStageDataArrayIndex, i+1);
+                               PreviousStageDataArrayIndex, cur_stage_i+1);
                 return false;
             }
         }

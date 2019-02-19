@@ -206,6 +206,7 @@ struct TSun
     double Euler[3];
     double RRefToLoc[3][3];
     double RLocToRef[3][3];
+    double PosSunStage[3];
     
     double MaxRad;
     double Xcm;
