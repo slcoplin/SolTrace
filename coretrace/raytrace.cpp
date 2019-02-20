@@ -225,7 +225,7 @@ bool end_stage(TSystem *System,
 			   st_uint_t StageDataArrayIndex,
 			   bool PreviousStageHasRays,
 			   st_uint_t PreviousStageDataArrayIndex,
-			   st_uint_t LastRayNumberInPreviousStage
+			   st_uint_t *LastRayNumberInPreviousStage_ptr
 			   ){
 	if(cur_stage_i==0 && save_st_data)
 	{
@@ -267,12 +267,12 @@ bool end_stage(TSystem *System,
 	if (!PreviousStageHasRays)
 	{
 		// no rays to carry forward
-		LastRayNumberInPreviousStage = 0;
+		*LastRayNumberInPreviousStage_ptr = 0;
 	}
 	else if (PreviousStageDataArrayIndex < IncomingRays.size())
 	{
-		LastRayNumberInPreviousStage = IncomingRays[PreviousStageDataArrayIndex].Num;
-		if (LastRayNumberInPreviousStage == 0)
+		*LastRayNumberInPreviousStage_ptr = IncomingRays[PreviousStageDataArrayIndex].Num;
+		if (*LastRayNumberInPreviousStage_ptr == 0)
 		{
 			size_t pp = IncomingRays[PreviousStageDataArrayIndex-1].Num;
 			System->errlog("LastRayNumberInPreviousStage=0, stage %d, PrevIdx=%d, CurIdx=%d, pp=%d", cur_stage_i+1,
@@ -1152,7 +1152,7 @@ Label_EndStageLoop:
 			no_error = end_stage(System, st0data, st1in, save_st_data,
 				                 Stage, cur_stage_i, IncomingRays,
 					             StageDataArrayIndex,
-					             PreviousStageHasRays, PreviousStageDataArrayIndex, LastRayNumberInPreviousStage);
+					             PreviousStageHasRays, PreviousStageDataArrayIndex, &LastRayNumberInPreviousStage);
 			if (!no_error) {
 				return false;
 			}
