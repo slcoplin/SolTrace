@@ -206,6 +206,89 @@ bool CheckForCancelAndUpdateProgressBar(TSystem *System,
 	return false;
 }
 
+
+/*
+ * Does the end of stage wrap-up of rays.
+ *
+ * Input: Variables as defined in Trace.
+ *
+ * Return: Boolean: false - error; true - ended as expected
+ *
+ */
+bool end_stage(TSystem *System,
+			   std::vector< std::vector< double > > *st0data,
+		       std::vector< std::vector< double > > *st1in,
+			   bool save_st_data,
+		       TStage *Stage,
+			   st_uint_t cur_stage_i,
+			   std::vector<GlobalRay> IncomingRays,
+			   st_uint_t StageDataArrayIndex,
+			   bool PreviousStageHasRays,
+			   st_uint_t PreviousStageDataArrayIndex,
+			   st_uint_t LastRayNumberInPreviousStage
+			   ){
+	if(cur_stage_i==0 && save_st_data)
+	{
+		//if flagged save the stage 0 incoming rays data
+		TRayData *raydat = &Stage->RayData;
+		st_uint_t nray0 = raydat->Count();
+
+		for(st_uint_t ii=0; ii<nray0; ii++)
+		{
+			TRayData::ray_t *rr = raydat->Index(ii,false);
+
+			std::vector<double> ray(8);
+			for(int j=0; j<3; j++)
+				ray[j] = rr->pos[j];
+			for(int j=0; j<3; j++)
+				ray[j+3] = rr->cos[j];
+			ray[6] = rr->element;
+			ray[7] = rr->raynum;
+			st0data->push_back(ray);
+		}
+	}
+
+	if(cur_stage_i==1 && save_st_data)
+	{
+		//if flagged, save the stage 1 incoming rays data to the data structure passed into the algorithm
+		for(int ir=0; ir<StageDataArrayIndex; ir++)
+		{
+			st1in->push_back(std::vector<double>(7));
+			for(int jr=0; jr<3; jr++)
+			{
+				st1in->back().at(jr) = IncomingRays[ir].Pos[jr];
+				st1in->back().at(jr+3) = IncomingRays[ir].Cos[jr];
+			}
+			st1in->back().at(6) = IncomingRays[ir].Num;
+		}
+	}
+
+
+	if (!PreviousStageHasRays)
+	{
+		// no rays to carry forward
+		LastRayNumberInPreviousStage = 0;
+	}
+	else if (PreviousStageDataArrayIndex < IncomingRays.size())
+	{
+		LastRayNumberInPreviousStage = IncomingRays[PreviousStageDataArrayIndex].Num;
+		if (LastRayNumberInPreviousStage == 0)
+		{
+			size_t pp = IncomingRays[PreviousStageDataArrayIndex-1].Num;
+			System->errlog("LastRayNumberInPreviousStage=0, stage %d, PrevIdx=%d, CurIdx=%d, pp=%d", cur_stage_i+1,
+								PreviousStageDataArrayIndex, StageDataArrayIndex, pp);
+			return false;
+		}
+	}
+	else
+	{
+		System->errlog("Invalid PreviousStageDataArrayIndex: %u, @ stage %d",
+					   PreviousStageDataArrayIndex, cur_stage_i+1);
+		return false;
+	}
+	return true;
+}
+
 bool Trace(TSystem *System, unsigned int seed,
            st_uint_t NumberOfRays,
            st_uint_t MaxNumberOfRays,
@@ -1065,67 +1148,15 @@ Label_TransformBackToGlobal:
             }
 
 Label_EndStageLoop:
+			bool no_error;
+			no_error = end_stage(System, st0data, st1in, save_st_data,
+				                 Stage, cur_stage_i, IncomingRays,
+					             StageDataArrayIndex,
+					             PreviousStageHasRays, PreviousStageDataArrayIndex, LastRayNumberInPreviousStage);
+			if (!no_error) {
+				return false;
+			}
 
-            if(cur_stage_i==0 && save_st_data)
-            {
-                //if flagged save the stage 0 incoming rays data
-                TRayData *raydat = &Stage->RayData;
-                st_uint_t nray0 = raydat->Count();
-
-                for(st_uint_t ii=0; ii<nray0; ii++)
-                {
-                    TRayData::ray_t *rr = raydat->Index(ii,false);
-
-                    std::vector<double> ray(8);
-                    for(int j=0; j<3; j++)
-                        ray[j] = rr->pos[j];
-                    for(int j=0; j<3; j++)
-                        ray[j+3] = rr->cos[j];
-                    ray[6] = rr->element;
-                    ray[7] = rr->raynum;
-                    st0data->push_back(ray);
-                }
-            }
-
-            if(cur_stage_i==1 && save_st_data)
-            {
-                //if flagged, save the stage 1 incoming rays data to the data structure passed into the algorithm
-                for(int ir=0; ir<StageDataArrayIndex; ir++)
-                {
-                    st1in->push_back(std::vector<double>(7));
-                    for(int jr=0; jr<3; jr++)
-                    {
-                        st1in->back().at(jr) = IncomingRays[ir].Pos[jr];
-                        st1in->back().at(jr+3) = IncomingRays[ir].Cos[jr];
-                    }
-                    st1in->back().at(6) = IncomingRays[ir].Num;
-                }
-            }
-
-
-            if (!PreviousStageHasRays)
-            {
-                LastRayNumberInPreviousStage = 0;
-                continue; // no rays to carry forward
-            }
-
-            if (PreviousStageDataArrayIndex < IncomingRays.size())
-            {
-                LastRayNumberInPreviousStage = IncomingRays[PreviousStageDataArrayIndex].Num;
-                if (LastRayNumberInPreviousStage == 0)
-                {
-                    size_t pp = IncomingRays[PreviousStageDataArrayIndex-1].Num;
-                    System->errlog("LastRayNumberInPreviousStage=0, stage %d, PrevIdx=%d, CurIdx=%d, pp=%d", cur_stage_i+1,
-                                        PreviousStageDataArrayIndex, StageDataArrayIndex, pp);
-                    return false;
-                }
-            }
-            else
-            {
-                System->errlog("Invalid PreviousStageDataArrayIndex: %u, @ stage %d",
-                               PreviousStageDataArrayIndex, cur_stage_i+1);
-                return false;
-            }
         }
 
         return true;
