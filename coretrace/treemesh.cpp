@@ -57,6 +57,8 @@
 
 #include <stdio.h>
 
+#include "types.h"
+
 
 
 //-------------------------------------------------------------------------------------------------
@@ -195,7 +197,7 @@ void st_tree_node::setup(st_tree_node *child0, st_tree_node *child1){
     if(child1 != 0)
         m1 = child1;
 }
-void st_tree_node::setup(void* Data)
+void st_tree_node::setup(TElement* Data)
 {
     //Set node as terminal and add data
     terminal = true;
@@ -205,7 +207,7 @@ void st_tree_node::setup(void* Data)
 bool st_tree_node::is_terminal(){
     return terminal;
 }
-vector<void*> *st_tree_node::get_array(){
+vector<TElement*> *st_tree_node::get_array(){
     return &data;
 }
 st_tree_node *st_tree_node::m_proc(string &key, int index){
@@ -268,7 +270,7 @@ vector<st_tree_node*> st_tree_node::m_get_children(){
     }
     return kids;
 }
-vector<void*> st_tree_node::get_child_data(){
+vector<TElement*> st_tree_node::get_child_data(){
     if(terminal){
         return data;
     }
@@ -277,7 +279,7 @@ vector<void*> st_tree_node::get_child_data(){
             return m0->get_child_data();
         }
         else{
-            vector<void*> m0dat, m1dat, alldat;
+            vector<TElement *> m0dat, m1dat, alldat;
             m0dat = m0->get_child_data();
             m1dat = m1->get_child_data();
             for(unsigned int i=0; i<m0dat.size(); i++)
@@ -336,12 +338,12 @@ vector<st_opt_element*> st_opt_element::get_children(){
 double *st_opt_element::get_yr(){return yr;}
 double *st_opt_element::get_xr(){return xr;}
 
-void st_opt_element::add_neighbor(void *ptr)
+void st_opt_element::add_neighbor(TElement *ptr)
 {
     neighbors.push_back(ptr);
 }
 
-vector<void*>* st_opt_element::get_neighbor_data()
+vector<TElement*>* st_opt_element::get_neighbor_data()
 {
     return &neighbors;
 }
@@ -410,7 +412,7 @@ void st_hash_tree::reset(){
     ny_req = -1;
 }
 
-void st_hash_tree::get_terminal_data(vector<vector<void*>*> &retdata){
+void st_hash_tree::get_terminal_data(vector<vector<TElement*>*> &retdata){
 
     for( vector<st_opt_element>::iterator it = nodes.begin(); it != nodes.end(); it++){
         if(! it->is_terminal() ) continue;
@@ -468,7 +470,7 @@ void st_hash_tree::add_neighborhood_data()
                     st_opt_element *el = head_node.process(nzone, 0);
                     if(el != 0)
                     {
-                        vector<void*>* dat = el->get_array();
+                        vector<TElement*>* dat = el->get_array();
                         if( dat != 0 )
                         {
                             for(int k=0; k<dat->size(); k++)
@@ -510,7 +512,7 @@ void st_hash_tree::add_neighborhood_data()
 }
 
 
-bool st_hash_tree::get_all_data_at_loc(vector<void*> &data, double locx, double locy)
+bool st_hash_tree::get_all_data_at_loc(vector<TElement *> &data, double locx, double locy)
 {
     string bin = pos_to_binary_base(locx, locy);
 
@@ -519,7 +521,7 @@ bool st_hash_tree::get_all_data_at_loc(vector<void*> &data, double locx, double 
     st_opt_element* z = head_node.process(bin, 0);
     if( z != 0 )
     {
-        vector<void*>* zd = z->get_array();
+        vector<TElement*>* zd = z->get_array();
         if(zd != 0)
             for(int i=0; i<zd->size(); i++)
                 data.push_back(zd->at(i));
@@ -536,7 +538,7 @@ bool st_hash_tree::get_all_data_at_loc(vector<void*> &data, double locx, double 
     return false;
 }
 
-void st_hash_tree::create_node(st_opt_element &node, int index, string &binary, void *object, double *dprojected)
+void st_hash_tree::create_node(st_opt_element &node, int index, string &binary, TElement *object, double *dprojected)
 {
     /* 
     node        |   pointer to parent node
@@ -858,7 +860,7 @@ void st_hash_tree::binary_to_pos(const string &binary, double *x, double *y)
     return;
 }
 
-void st_hash_tree::add_object(void *object, double locx, double locy, double *objsize)
+void st_hash_tree::add_object(TElement *object, double locx, double locy, double *objsize)
 {
     string tag = pos_to_binary_base(locx, locy);
     create_node(head_node, 0, tag, object, objsize);

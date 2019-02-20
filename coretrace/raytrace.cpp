@@ -132,10 +132,12 @@ struct Ray
     double CosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
     double DFXYZ[3] = { 0.0, 0.0, 0.0 };
     double LastDFXYZ[3] = { 0.0, 0.0, 0.0 };
-    double LastDFXYZ[3] = { 0.0, 0.0, 0.0 };
     double IncidentAngle = 0.0;
     double UnitLastDFXYZ[3] = { 0.0, 0.0, 0.0 };
     int ErrorFlag = 0, InterceptFlag = 0, HitBackSide = 0, LastHitBackSide = 0;
+    double PathLength = 0.0;
+    double LastPathLength = 0.0;
+    bool StageHit = false;
 };
 
 //structure to store element address and projected polar coordinate size
@@ -211,6 +213,7 @@ bool CheckForCancelAndUpdateProgressBar(TSystem *System,
  * Does the end of stage wrap-up of rays.
  *
  * Input: Variables as defined in Trace.
+ *        LastRayNumberInPreviousStage_ptr is a pointer to LastRayNumberInPreviousStage and will be modified.
  *
  * Return: Boolean: false - error; true - ended as expected
  *
@@ -316,12 +319,14 @@ bool Trace(TSystem *System, unsigned int seed,
     {
         load_st_data = st0data->size() > 0 && st1in->size() > 0;
     }
-    bool StageHit = false;
+
     st_uint_t LastElementNumber = 0, LastRayNumber = 0;
     st_uint_t MultipleHitCount = 0;
-    double LastPathLength = 0.0, PathLength = 0.0;
 
-    System->Sun.PosSunStage = { 0.0, 0.0, 0.0 };
+
+	for (int i; i < 3; i++) {
+		System->Sun.PosSunStage[i] = 0.0;
+	}
 
     // Initialize ray variables
     Ray ray;
@@ -562,7 +567,7 @@ bool Trace(TSystem *System, unsigned int seed,
             for( st_uint_t i=0; i<System->StageList[0]->ElementList.size(); i++)
             {
                 TElement* el = System->StageList[0]->ElementList.at(i);
-                sun_hash.add_object( (void*)el, el->PosSunCoords[0], el->PosSunCoords[1] );
+                sun_hash.add_object( el, el->PosSunCoords[0], el->PosSunCoords[1] );
             }
 
             //calculate and associate neighbors with each zone
@@ -594,7 +599,7 @@ bool Trace(TSystem *System, unsigned int seed,
                     angspan[0] = D->d_proj/cos(fabs(D->zen))*adjmult;   //azimuthal span
                     angspan[0] = fmin(angspan[0], 2.*M_PI);     //limit to circumference
                     angspan[1] = D->d_proj/M_PI*adjmult;    //zenithal span
-                    rec_hash.add_object( (void*)D->el_addr,  D->az, D->zen, angspan);
+                    rec_hash.add_object( D->el_addr,  D->az, D->zen, angspan);
                 }
                 time("Adding polar mesh neighbors:\t",&fout);
                 //associate neighbors with each zone
@@ -642,9 +647,10 @@ bool Trace(TSystem *System, unsigned int seed,
 
 
         //declare items used within the loop
-        vector<void*> sunint_elements;
-        vector<void*> reflint_elements;
+        vector<TElement*> sunint_elements;
+        vector<TElement*> reflint_elements;
         bool has_elements;
+        std::vector<TElement*> element_list;
 
         time("Starting stage calculations:\t", &fout);
 #ifdef WITH_DEBUG_TIMER
@@ -719,6 +725,7 @@ Label_StartRayLoop:
             sunint_elements.clear();
 
             has_elements = true;
+            // Load the ray and trace it.
             // First stage. Generate a ray and get elements that could interact
             if ( cur_stage_i == 0 )
             {
@@ -774,11 +781,11 @@ Label_StartRayLoop:
             in_multi_hit_loop = false;
 
 Label_MultiHitLoop:
-            LastPathLength = 1e99;
-            StageHit = false;
+            ray.LastPathLength = 1e99;
+            ray.StageHit = false;
 
             st_uint_t nintelements;
-            std::vector<TElement*> element_list;
+            //std::vector<TElement*> element_list;
             // Find number of elements to check intersections with, and set element_list
             if( cur_stage_i==0 && !PT_override)
             {
@@ -803,7 +810,7 @@ Label_MultiHitLoop:
                         has_elements = nintelements > 0;
 
                         // Set element_list to reflint_elements
-                        element_list = (std::vector<TElement*>) reflint_elements;
+                        element_list = reflint_elements;
 
                     }
                     else
@@ -822,7 +829,7 @@ Label_MultiHitLoop:
                         nintelements = sunint_elements.size();
 
 						// Set element_list to sunint_elements
-						element_list = (std::vector<TElement*>) sunint_elements;
+						element_list = sunint_elements;
                     }
                     else
                     {
@@ -868,7 +875,7 @@ Label_MultiHitLoop:
                 // {Determine if ray intersects element[j]; if so, Find intersection point with surface of element[j] }
                 DetermineElementIntersectionNew(Element, ray.PosRayElement, ray.CosRayElement,
                 		ray.PosRaySurfElement, ray.CosRaySurfElement, ray.DFXYZ,
-                    &PathLength, &ray.ErrorFlag, &ray.InterceptFlag, &ray.HitBackSide);
+                    &ray.PathLength, &ray.ErrorFlag, &ray.InterceptFlag, &ray.HitBackSide);
 
 
 
@@ -877,7 +884,7 @@ Label_MultiHitLoop:
                   //{If hit multiple elements, this loop determines which one hit first.
                   //Also makes sure that correct part of closed surface is hit. Also, handles wavy, but close to flat zernikes and polynomials correctly.}
                   //if (PathLength < LastPathLength) and (PosRaySurfElement[2] <= Element->ZAperture) then
-                    if (PathLength < LastPathLength)
+                    if (ray.PathLength < ray.LastPathLength)
                     {
                         if (ray.PosRaySurfElement[2] <= Element->ZAperture
                             || Element->SurfaceIndex == 'm'
@@ -885,8 +892,8 @@ Label_MultiHitLoop:
                             || Element->SurfaceIndex == 'r'
                             || Element->SurfaceIndex == 'R')
                         {
-                            StageHit = true;
-                            LastPathLength = PathLength;
+                            ray.StageHit = true;
+                            ray.LastPathLength = ray.PathLength;
                             CopyVec3( ray.LastPosRaySurfElement, ray.PosRaySurfElement );
                             CopyVec3( ray.LastCosRaySurfElement, ray.CosRaySurfElement );
                             CopyVec3( ray.LastDFXYZ, ray.DFXYZ );
@@ -908,7 +915,7 @@ Label_MultiHitLoop:
             //  condition because rays are continually traced until they no longer hit the stage}
 Label_StageHitLogic:
 
-            if ( !StageHit )
+            if ( !ray.StageHit )
             {
                 if ( cur_stage_i == 0 ) // first stage only
                 {
@@ -1138,7 +1145,7 @@ Label_TransformBackToGlobal:
 
             if (!Stage->MultiHitsPerRay)
             {
-                StageHit = false;
+                ray.StageHit = false;
                 goto Label_StageHitLogic;
             }
             else
