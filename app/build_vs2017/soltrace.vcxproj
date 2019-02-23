@@ -283,7 +283,7 @@
       <AdditionalLibraryDirectories>$(LKDIR);$(WEXDIR);$(WEXDIR)\build_vs2017\libcurl_ssl_win32\lib;$(WEXDIR);$(LKDIR);$(WXMSW3)\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)\$(TargetName).pdb</ProgramDatabaseFile>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -333,7 +333,7 @@
       <AdditionalLibraryDirectories>$(LKDIR);$(WEXDIR);$(WEXDIR)\build_vs2017\libcurl_ssl_x64\lib;$(WEXDIR);$(LKDIR);$(WXMSW3)\lib\vc_x64_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)\$(TargetName).pdb</ProgramDatabaseFile>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>

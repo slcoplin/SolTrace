@@ -324,7 +324,7 @@ bool Trace(TSystem *System, unsigned int seed,
     st_uint_t MultipleHitCount = 0;
 
 
-	for (int i; i < 3; i++) {
+	for (int i = 0; i < 3; i++) {
 		System->Sun.PosSunStage[i] = 0.0;
 	}
 
@@ -661,7 +661,7 @@ bool Trace(TSystem *System, unsigned int seed,
 
         clock_t startTime = clock();     //start timer
         int rays_per_callback_estimate = 50;    //starting rough estimate for how often to check the clock
-
+	
         for (st_uint_t cur_stage_i=0;cur_stage_i<System->StageList.size();cur_stage_i++)
         {
 
@@ -681,7 +681,8 @@ bool Trace(TSystem *System, unsigned int seed,
             StageDataArrayIndex = 0;
             PreviousStageDataArrayIndex = 0;
 
-
+			// TODO: Unflagged loading data
+#ifdef FLAGGED_FOR_NO_LOADING_DATA
             //if loading stage 0 data, construct appropriate arrays here
             if(cur_stage_i==0 && load_st_data)
             {
@@ -718,454 +719,502 @@ bool Trace(TSystem *System, unsigned int seed,
                 goto Label_EndStageLoop;
             }
 
-
-            // Start of one ray's tracing
-Label_StartRayLoop:
-            MultipleHitCount = 0;
-            sunint_elements.clear();
-
-            has_elements = true;
-            // Load the ray and trace it.
-            // First stage. Generate a ray and get elements that could interact
-            if ( cur_stage_i == 0 )
-            {
-
-                // we are in the first stage, so
-                // generate a new sun ray in global coords
-                double PosRaySun[3];
-                GenerateRay(myrng, System->Sun.PosSunStage, Stage->Origin,
-                            Stage->RLocToRef, &System->Sun,
-							ray.PosRayGlob, ray.CosRayGlob, PosRaySun);
-                    System->SunRayCount++;
-
-
-                if (System->SunRayCount > MaxNumberOfRays)
-                {
-                    System->errlog("generated sun rays reached maximum count: %d", MaxNumberOfRays);
-                    return false;
-                }
-
-                /*
-                Find the list of elements that could potentially interact with this ray. If empty, continue
-                */
-                if(! PT_override) //AsPowerTower)
-                    has_elements = sun_hash.get_all_data_at_loc( sunint_elements, PosRaySun[0], PosRaySun[1] );
-
-            }
-            // Other stages. Load the ray from the previous stage.
-            else
-            {
-                // we are in a subsequent stage, so trace using an incoming ray
-                // saved from the previous stages
-                RayNumber = IncomingRays[StageDataArrayIndex].Num;
-                CopyVec3( ray.PosRayGlob, IncomingRays[StageDataArrayIndex].Pos );
-                CopyVec3( ray.CosRayGlob, IncomingRays[StageDataArrayIndex].Cos );
-                StageDataArrayIndex++;
-
-            }
-
-            // transform the global incoming ray to local stage coordinates
-            TransformToLocal(ray.PosRayGlob, ray.CosRayGlob,
-                Stage->Origin, Stage->RRefToLoc,
-				ray.PosRayStage, ray.CosRayStage);
-
-
-            // Increment RaysTracedTotal then check callback
-            RaysTracedTotal++;
-            bool cancel = CheckForCancelAndUpdateProgressBar(System, callback, cbdata,
-            									&rays_per_callback_estimate,
-												startTime, RayNumber, RaysTracedTotal,
-												LastRayNumberInPreviousStage, cur_stage_i);
-            if (cancel) {return true;}
-
-            in_multi_hit_loop = false;
-
-Label_MultiHitLoop:
-            ray.LastPathLength = 1e99;
-            ray.StageHit = false;
-
-            st_uint_t nintelements;
-            //std::vector<TElement*> element_list;
-            // Find number of elements to check intersections with, and set element_list
-            if( cur_stage_i==0 && !PT_override)
-            {
-                if( in_multi_hit_loop )
-                {
-                    if( AsPowerTower )
-                    {
-                        //>=Second time through - checking for first stage multiple element interactions
-
-                        //get ray position in receiver polar coordinates
-                        double raypvec[3];
-                        for(int jj=0; jj<3; jj++)
-                            raypvec[jj] = ray.PosRayStage[jj] - reccm_helio[jj];
-                        double raypvecmag = sqrt(raypvec[0]*raypvec[0] + raypvec[1]*raypvec[1] + raypvec[2]*raypvec[2]);
-                        double raypol[2];
-                        raypol[0] = atan2(raypvec[0], raypvec[1]);
-                        raypol[1] = asin(raypvec[2]/raypvecmag);
-                        //get elements in the vicinity of the ray's polar coordinates
-                        reflint_elements.clear();
-                        rec_hash.get_all_data_at_loc( reflint_elements, raypol[0], raypol[1]);
-                        nintelements = reflint_elements.size();
-                        has_elements = nintelements > 0;
-
-                        // Set element_list to reflint_elements
-                        element_list = reflint_elements;
-
-                    }
-                    else
-                    {
-                        nintelements = Stage->ElementList.size();
-
-                        // Set element_list to Stage->ElementList
-                        element_list = (std::vector<TElement*>) Stage->ElementList;
-                    }
-                }
-                else
-                {
-                    //First time through - checking for sun ray intersections
-                    if( has_elements )
-                    {
-                        nintelements = sunint_elements.size();
-
-						// Set element_list to sunint_elements
-						element_list = sunint_elements;
-                    }
-                    else
-                    {
-                        nintelements = 0;
-
-                        // No element_list because no elements
-                    }
-                }
-            }
-            // If other stage, then check all elements
-            else
-            {
-                nintelements = Stage->ElementList.size();
-
-                // Set element_list to Stage->ElementList
-                element_list = (std::vector<TElement*>) Stage->ElementList;
-            }
-
-            // Check for intersections with all elements
-            // checkIntersectionInStage(){
-            for( st_uint_t j=0; j<nintelements; j++)
-            {
-                TElement *Element;
-                Element = element_list[j];
-
-                if (!Element->Enabled)
-                    continue;
-
-                //  {Transform ray to element[j] coord system of Stage[i]}
-                TransformToLocal( ray.PosRayStage, ray.CosRayStage,
-                                  Element->Origin, Element->RRefToLoc,
-								  ray.PosRayElement, ray.CosRayElement);
-
-                ray.ErrorFlag = 0;
-                ray.HitBackSide = 0;
-                ray.InterceptFlag = 0;
-
-                // increment position by tiny amount to get off the element if tracing to the same element
-                for (int i = 0; i < 3; i++) {
-                	ray.PosRayElement[i] = ray.PosRayElement[i] + 1.0e-5*ray.CosRayElement[i];
-                }
-
-                // {Determine if ray intersects element[j]; if so, Find intersection point with surface of element[j] }
-                DetermineElementIntersectionNew(Element, ray.PosRayElement, ray.CosRayElement,
-                		ray.PosRaySurfElement, ray.CosRaySurfElement, ray.DFXYZ,
-                    &ray.PathLength, &ray.ErrorFlag, &ray.InterceptFlag, &ray.HitBackSide);
-
-
-
-                if (ray.InterceptFlag)
-                {
-                  //{If hit multiple elements, this loop determines which one hit first.
-                  //Also makes sure that correct part of closed surface is hit. Also, handles wavy, but close to flat zernikes and polynomials correctly.}
-                  //if (PathLength < LastPathLength) and (PosRaySurfElement[2] <= Element->ZAperture) then
-                    if (ray.PathLength < ray.LastPathLength)
-                    {
-                        if (ray.PosRaySurfElement[2] <= Element->ZAperture
-                            || Element->SurfaceIndex == 'm'
-                            || Element->SurfaceIndex == 'M'
-                            || Element->SurfaceIndex == 'r'
-                            || Element->SurfaceIndex == 'R')
-                        {
-                            ray.StageHit = true;
-                            ray.LastPathLength = ray.PathLength;
-                            CopyVec3( ray.LastPosRaySurfElement, ray.PosRaySurfElement );
-                            CopyVec3( ray.LastCosRaySurfElement, ray.CosRaySurfElement );
-                            CopyVec3( ray.LastDFXYZ, ray.DFXYZ );
-                            LastElementNumber = ( cur_stage_i == 0 && !PT_override )? Element->element_number : j+1;    //mjw change from j index to element id
-                            LastRayNumber = RayNumber;
-                            TransformToReference(ray.PosRaySurfElement, ray.CosRaySurfElement,
-                                Element->Origin, Element->RLocToRef,
-								ray.PosRaySurfStage, ray.CosRaySurfStage);
-
-                            CopyVec3( ray.LastPosRaySurfStage, ray.PosRaySurfStage );
-                            CopyVec3( ray.LastCosRaySurfStage, ray.CosRaySurfStage );
-                            ray.LastHitBackSide = ray.HitBackSide;
-                        }
-                    }
-                }
-            }
-
-            //  {Logic for ray which misses stage element - Note that all rays eventually satisfy this
-            //  condition because rays are continually traced until they no longer hit the stage}
-Label_StageHitLogic:
-
-            if ( !ray.StageHit )
-            {
-                if ( cur_stage_i == 0 ) // first stage only
-                {
-                    if (MultipleHitCount == 0)
-                        goto Label_StartRayLoop; // ray misses 1st stage completely so get a new sun ray
-                    else
-                    {
-
-                        // at least one hit on stage, so move on to next ray
-                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Pos, ray.PosRayGlob );
-                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Cos, ray.CosRayGlob );
-                        IncomingRays[PreviousStageDataArrayIndex].Num = RayNumber;
-
-                        if (RayNumber == NumberOfRays)
-                            goto Label_EndStageLoop;
-
-                        PreviousStageDataArrayIndex++;
-                        PreviousStageHasRays = true;
-
-                        RayNumber++;
-                        goto Label_StartRayLoop;
-                    }
-                }
-                else
-                {
-                    // stages beyond first stage
-                    if (Stage->TraceThrough || MultipleHitCount > 0)
-                    {
-
-                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Pos, ray.PosRayGlob );
-                        CopyVec3( IncomingRays[PreviousStageDataArrayIndex].Cos, ray.CosRayGlob );
-                        IncomingRays[PreviousStageDataArrayIndex].Num = RayNumber;
-
-                        if (RayNumber == LastRayNumberInPreviousStage)
-                            goto Label_EndStageLoop;
-
-                        PreviousStageDataArrayIndex++;
-                        PreviousStageHasRays = true;
-
-                        if (MultipleHitCount == 0)
-                            goto Label_FlagMiss;
-
-                        goto Label_StartRayLoop;
-                    }
-Label_FlagMiss:
-                    LastElementNumber = 0;
-                    LastRayNumber = RayNumber;
-                    CopyVec3(ray.LastPosRaySurfStage, ray.PosRayStage);
-                    CopyVec3(ray.LastCosRaySurfStage, ray.CosRayStage);
-                }
-            } // end of not stagehit logic
-
-            p_ray = Stage->RayData.Append( ray.LastPosRaySurfStage,
-                                  ray.LastCosRaySurfStage,
-                                  LastElementNumber,
-                                  cur_stage_i+1,
-                                  LastRayNumber );
-
-            if (!p_ray)
-            {
-                System->errlog("Failed to save ray data at index %d", Stage->RayData.Count()-1);
-                return false;
-            }
-
-            if (LastElementNumber == 0) // {If missed all elements}
-            {
-                if (RayNumber == LastRayNumberInPreviousStage)
-                {
-                    if ( !Stage->TraceThrough )
-                    {
-                        PreviousStageHasRays = false;
-                        if (PreviousStageDataArrayIndex > 0)
-                        {
-                            PreviousStageHasRays = true;
-                            PreviousStageDataArrayIndex--; // last ray was previous one
-                        }
-                    }
-                    goto Label_EndStageLoop;
-                }
-                else
-                {
-                    if (cur_stage_i == 0) RayNumber++; // generate new sun ray
-                    goto Label_StartRayLoop;
-                }
-            }
-
-            MultipleHitCount++;
-
-            if ( Stage->Virtual )
-            {
-                CopyVec3(ray.PosRayOutElement, ray.LastPosRaySurfElement);
-                CopyVec3(ray.CosRayOutElement, ray.LastCosRaySurfElement);
-                goto Label_TransformBackToGlobal;
-            }
-
-            // {Otherwise trace ray through interaction}
-            // {Determine if backside or frontside properties should be used}
-
-            // trace through the interaction
-            optelm = Stage->ElementList[ p_ray->element - 1 ];
-            optics = 0;
-
-            if (ray.LastHitBackSide)
-                optics = &optelm->Optics->Back;
-            else
-                optics = &optelm->Optics->Front;
-
-
-            double TestValue;
-            switch(optelm->InteractionType )
-            {
-            case 1: // refraction
-                TestValue = optics->Transmissivity;
-                break;
-            case 2: // reflection
-
-                if ( optics->UseReflectivityTable )
-                {
-                    int npoints = optics->ReflectivityTable.size();
-                    int m = 0;
-                    for (int i = 0; i < 3; i++) {
-                    	ray.UnitLastDFXYZ[i] = -ray.LastDFXYZ[i]/sqrt(DOT(ray.LastDFXYZ, ray.LastDFXYZ));
-                    }
-
-                    ray.IncidentAngle = acos(DOT(ray.LastCosRaySurfElement, ray.UnitLastDFXYZ));
-                    if (ray.IncidentAngle >= optics->ReflectivityTable[ npoints-1 ].angle )
-                    {
-                        TestValue = optics->ReflectivityTable[ npoints-1 ].refl;
-                    }
-                    else
-                    {
-                        while ( optics->ReflectivityTable[m].angle < ray.IncidentAngle )
-                            m++;
-
-                        if (m == 0)
-                            TestValue = optics->ReflectivityTable[m].refl;
-                        else
-                            TestValue = (optics->ReflectivityTable[m].refl + optics->ReflectivityTable[m-1].refl)/2.0;
-                    }
-                }
-                else
-                    TestValue = optics->Reflectivity;
-                break;
-            default:
-                System->errlog("Bad optical interaction type = %d (stage %d)",cur_stage_i,optelm->InteractionType);
-                return false;
-            }
-
-
-        //  {Apply MonteCarlo probability of absorption. Limited for now, but can make more complex later on if desired}
-            if (TestValue <= myrng())
-            {
-                // ray was fully absorbed, so indicate by negating the element number
-                p_ray->element = 0 - p_ray->element;
-
-                if (RayNumber == LastRayNumberInPreviousStage)
-                {
-                    PreviousStageHasRays = false;
-                    if (PreviousStageDataArrayIndex > 0)
-                    {
-                        PreviousStageDataArrayIndex--;
-                        PreviousStageHasRays = true;
-                    }
-                    goto Label_EndStageLoop;
-                }
-                else
-                {
-                    if (cur_stage_i == 0)
-                    {
-                        if (RayNumber == NumberOfRays)
-                            goto Label_EndStageLoop;
-                        else
-                            RayNumber++;
-                    }
-
-                    goto Label_StartRayLoop;
-                }
-            }
-
-Label_TransformBackToGlobal:
-            k = abs( p_ray->element ) - 1;
-
-            if ( !Stage->Virtual )
-            {
-                if (IncludeSunShape && cur_stage_i == 0 && MultipleHitCount == 1)//change to account for first hit only in primary stage 8-11-31
-                {
-                    // Apply sunshape to UNPERTURBED ray at intersection point
-                    //only apply sunshape error once for primary stage
-                    CopyVec3(ray.CosIn, ray.LastCosRaySurfElement);
-                    Errors(myrng, ray.CosIn, 1, &System->Sun,
-                           Stage->ElementList[k], optics, ray.CosOut, ray.LastDFXYZ);  //sun shape
-                    CopyVec3(ray.LastCosRaySurfElement, ray.CosOut);
-                }
-
-                //{Determine interaction at surface and direction of perturbed ray}
-                ray.ErrorFlag = 0;
-
-                // {Apply surface normal errors to surface normal before interaction ray at intersection point - Wendelin 11-23-09}
-                if( IncludeErrors )
-                {
-                    CopyVec3( ray.CosIn, ray.CosRayOutElement );
-                    SurfaceNormalErrors(myrng, ray.LastDFXYZ, optics, ray.CosOut);  //surface normal errors
-                    CopyVec3( ray.LastDFXYZ, ray.CosOut );
-                }
-
-                Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
-                    Stage->ElementList[k]->InteractionType, optics, 630.0,
-					ray.PosRayOutElement, ray.CosRayOutElement, &ray.ErrorFlag);
-
-                // {Apply specularity optical error to PERTURBED (i.e. after interaction) ray at intersection point}
-                if( IncludeErrors )
-                {
-                    CopyVec3(ray.CosIn, ray.CosRayOutElement);
-                    Errors(myrng, ray.CosIn, 2, &System->Sun,
-                           Stage->ElementList[k], optics, ray.CosOut, ray.LastDFXYZ);  //optical errors
-                    CopyVec3(ray.CosRayOutElement, ray.CosOut);
-                }
-            }
-
-            // { Transform ray back to stage coord system and trace through stage again}
-            TransformToReference(ray.PosRayOutElement, ray.CosRayOutElement,
-                    Stage->ElementList[k]->Origin, Stage->ElementList[k]->RLocToRef,
+#endif 
+
+
+			// PB: good place for adding loop. IncomingRays already has a vector of size NumberOfRays
+			// IncomingRays may have elements from previous stage 1 data
+			// but our testing case, no rays has been traced yet
+
+			// loop through rays within each stage
+			for (int PreviousStageDataArrayIndex = 0; PreviousStageDataArrayIndex <= NumberOfRays; PreviousStageDataArrayIndex++) {
+
+				// Formerly Label_StartRayLoop:
+				MultipleHitCount = 0;
+				sunint_elements.clear();
+
+				has_elements = true;
+				// Load the ray and trace it.
+				// First stage. Generate a ray and get elements that could interact
+				if (cur_stage_i == 0)
+				{
+
+					// we are in the first stage, so
+					// generate a new sun ray in global coords
+					double PosRaySun[3];
+					GenerateRay(myrng, System->Sun.PosSunStage, Stage->Origin,
+						Stage->RLocToRef, &System->Sun,
+						ray.PosRayGlob, ray.CosRayGlob, PosRaySun);
+					System->SunRayCount++;
+
+
+					if (System->SunRayCount > MaxNumberOfRays)
+					{
+						System->errlog("generated sun rays reached maximum count: %d", MaxNumberOfRays);
+						return false;
+					}
+
+					// Find the list of elements that could potentially interact with this ray. If empty, continue
+					
+					if (!PT_override) //AsPowerTower)
+						has_elements = sun_hash.get_all_data_at_loc(sunint_elements, PosRaySun[0], PosRaySun[1]);
+
+				}
+				// TODO: Add handler for i > 0 stage : DONE
+				// Other stages. Load the ray from the previous stage.
+				else
+				{
+					// we are in a subsequent stage, so trace using an incoming ray
+					// saved from the previous stages
+					RayNumber = IncomingRays[StageDataArrayIndex].Num;
+					CopyVec3( ray.PosRayGlob, IncomingRays[StageDataArrayIndex].Pos );
+					CopyVec3( ray.CosRayGlob, IncomingRays[StageDataArrayIndex].Cos );
+					StageDataArrayIndex++;
+
+				}
+
+				// transform the global incoming ray to local stage coordinates
+				TransformToLocal(ray.PosRayGlob, ray.CosRayGlob,
+					Stage->Origin, Stage->RRefToLoc,
 					ray.PosRayStage, ray.CosRayStage);
-            TransformToReference(ray.PosRayStage, ray.CosRayStage,
-                    Stage->Origin, Stage->RLocToRef,
-					ray.PosRayGlob, ray.CosRayGlob);
 
-            if (!Stage->MultiHitsPerRay)
-            {
-                ray.StageHit = false;
-                goto Label_StageHitLogic;
-            }
-            else
-            {
-                in_multi_hit_loop = true;
-                goto Label_MultiHitLoop;
-            }
 
+				// Increment RaysTracedTotal then check callback
+				RaysTracedTotal++;
+				bool cancel = CheckForCancelAndUpdateProgressBar(System, callback, cbdata,
+					&rays_per_callback_estimate,
+					startTime, RayNumber, RaysTracedTotal,
+					LastRayNumberInPreviousStage, cur_stage_i);
+				if (cancel) { return true; }
+
+				// Start ray tracing
+
+				in_multi_hit_loop = false;
+
+			Label_MultiHitLoop:
+				// Getting list of elements to check for intersection
+
+				ray.LastPathLength = 1e99;
+				ray.StageHit = false;
+
+				st_uint_t nintelements;
+				// std::vector<TElement*> element_list;
+				// Find number of elements to check intersections with, and set element_list
+
+				// TODO: FUNCTION: nintelements, element_list = get_elements_in_stage(curr_stage_i, has_element, in_multi_hit_loop)
+				// in_multi_hit_loop is only used once, change to checking if nintelements > 0
+
+
+				if (cur_stage_i == 0 && !PT_override)
+				{
+					if (in_multi_hit_loop)
+					{
+						if (AsPowerTower)
+						{
+							//>=Second time through - checking for first stage multiple element interactions
+
+							//get ray position in receiver polar coordinates
+							double raypvec[3];
+							for (int jj = 0; jj < 3; jj++)
+								raypvec[jj] = ray.PosRayStage[jj] - reccm_helio[jj];
+							double raypvecmag = sqrt(raypvec[0] * raypvec[0] + raypvec[1] * raypvec[1] + raypvec[2] * raypvec[2]);
+							double raypol[2];
+							raypol[0] = atan2(raypvec[0], raypvec[1]);
+							raypol[1] = asin(raypvec[2] / raypvecmag);
+							//get elements in the vicinity of the ray's polar coordinates
+							reflint_elements.clear();
+							rec_hash.get_all_data_at_loc(reflint_elements, raypol[0], raypol[1]);
+							nintelements = reflint_elements.size();
+							has_elements = nintelements > 0;
+
+							// Set element_list to reflint_elements
+							element_list = reflint_elements;
+
+						}
+						else
+						{
+							nintelements = Stage->ElementList.size();
+
+							// Set element_list to Stage->ElementList
+							element_list = (std::vector<TElement*>) Stage->ElementList;
+						}
+					}
+					else
+					{
+						//First time through - checking for sun ray intersections
+						if (has_elements)
+						{
+							nintelements = sunint_elements.size();
+
+							// Set element_list to sunint_elements
+							element_list = sunint_elements;
+						}
+						else
+						{
+							nintelements = 0;
+
+							// No element_list because no elements
+						}
+					}
+				}
+				// If other stage, then check all elements
+				else
+				{
+					nintelements = Stage->ElementList.size();
+
+					// Set element_list to Stage->ElementList
+					element_list = (std::vector<TElement*>) Stage->ElementList;
+				}
+
+				// check for ray intersections
+				// TODO: FUNCTION: check_intersection_in_stage(){
+				for (st_uint_t j = 0; j < nintelements; j++)
+				{
+					TElement *Element;
+					Element = element_list[j];
+
+					if (!Element->Enabled)
+						continue;
+
+					//  {Transform ray to element[j] coord system of Stage[i]}
+					TransformToLocal(ray.PosRayStage, ray.CosRayStage,
+						Element->Origin, Element->RRefToLoc,
+						ray.PosRayElement, ray.CosRayElement);
+
+					ray.ErrorFlag = 0;
+					ray.HitBackSide = 0;
+					ray.InterceptFlag = 0;
+
+					// increment position by tiny amount to get off the element if tracing to the same element
+					for (int i = 0; i < 3; i++) {
+						ray.PosRayElement[i] = ray.PosRayElement[i] + 1.0e-5*ray.CosRayElement[i];
+					}
+
+					// {Determine if ray intersects element[j]; if so, Find intersection point with surface of element[j] }
+					DetermineElementIntersectionNew(Element, ray.PosRayElement, ray.CosRayElement,
+						ray.PosRaySurfElement, ray.CosRaySurfElement, ray.DFXYZ,
+						&ray.PathLength, &ray.ErrorFlag, &ray.InterceptFlag, &ray.HitBackSide);
+
+
+
+					if (ray.InterceptFlag)
+					{
+						//{If hit multiple elements, this loop determines which one hit first.
+						//Also makes sure that correct part of closed surface is hit. Also, handles wavy, but close to flat zernikes and polynomials correctly.}
+						//if (PathLength < LastPathLength) and (PosRaySurfElement[2] <= Element->ZAperture) then
+						if (ray.PathLength < ray.LastPathLength)
+						{
+							if (ray.PosRaySurfElement[2] <= Element->ZAperture
+								|| Element->SurfaceIndex == 'm'
+								|| Element->SurfaceIndex == 'M'
+								|| Element->SurfaceIndex == 'r'
+								|| Element->SurfaceIndex == 'R')
+							{
+								ray.StageHit = true;
+								ray.LastPathLength = ray.PathLength;
+								CopyVec3(ray.LastPosRaySurfElement, ray.PosRaySurfElement);
+								CopyVec3(ray.LastCosRaySurfElement, ray.CosRaySurfElement);
+								CopyVec3(ray.LastDFXYZ, ray.DFXYZ);
+								LastElementNumber = (cur_stage_i == 0 && !PT_override) ? Element->element_number : j + 1;    //mjw change from j index to element id
+								LastRayNumber = RayNumber;
+								TransformToReference(ray.PosRaySurfElement, ray.CosRaySurfElement,
+									Element->Origin, Element->RLocToRef,
+									ray.PosRaySurfStage, ray.CosRaySurfStage);
+
+								CopyVec3(ray.LastPosRaySurfStage, ray.PosRaySurfStage);
+								CopyVec3(ray.LastCosRaySurfStage, ray.CosRaySurfStage);
+								ray.LastHitBackSide = ray.HitBackSide;
+							}
+						}
+					}
+				}
+
+			Label_StageHitLogic:
+				if (!ray.StageHit)
+				{
+					if (cur_stage_i == 0) // first stage only
+					{
+						// first-time generated ray missed the stage completely
+						// go back to the ray loop but without increasing the index
+						if (MultipleHitCount == 0) {
+							PreviousStageDataArrayIndex--;
+							continue;
+							// goto Label_StartRayLoop; // ray misses 1st stage completely so get a new sun ray
+						}
+						else
+						{
+
+							// at least one hit on stage, so move on to next ray
+							CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Pos, ray.PosRayGlob);
+							CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Cos, ray.CosRayGlob);
+							IncomingRays[PreviousStageDataArrayIndex].Num = RayNumber;
+
+							if (RayNumber == NumberOfRays)
+								// TODO: change to end_stage()
+								goto Label_EndStageLoop;
+
+							// PreviousStageDataArrayIndex++;
+							PreviousStageHasRays = true;
+
+							// continue ray loop
+
+							RayNumber++;
+							continue;
+							// goto Label_StartRayLoop;
+						}
+					}
+
+					// TODO: Add handler for stage i>0 and  FLAG_MISSED
+					
+					else
+					{
+						// stages beyond first stage
+						if (Stage->TraceThrough || MultipleHitCount > 0)
+						{
+
+							CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Pos, ray.PosRayGlob);
+							CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Cos, ray.CosRayGlob);
+							IncomingRays[PreviousStageDataArrayIndex].Num = RayNumber;
+
+							if (RayNumber == LastRayNumberInPreviousStage)
+								goto Label_EndStageLoop;
+
+							// PreviousStageDataArrayIndex++;
+							PreviousStageHasRays = true;
+
+							if (MultipleHitCount == 0)
+								goto Label_FlagMiss;
+
+							continue;
+							// goto Label_StartRayLoop;
+						}
+Label_FlagMiss:
+						LastElementNumber = 0;
+						LastRayNumber = RayNumber;
+						CopyVec3(ray.LastPosRaySurfStage, ray.PosRayStage);
+						CopyVec3(ray.LastCosRaySurfStage, ray.CosRayStage);
+					}
+
+				} // end of not stagehit logic
+	
+				// append ray data
+				p_ray = Stage->RayData.Append( ray.LastPosRaySurfStage,
+									  ray.LastCosRaySurfStage,
+									  LastElementNumber,
+									  cur_stage_i+1,
+									  LastRayNumber );
+
+				if (!p_ray)
+				{
+					System->errlog("Failed to save ray data at index %d", Stage->RayData.Count()-1);
+					return false;
+				}
+
+				if (LastElementNumber == 0) // {If missed all elements}
+				{
+					if (RayNumber == LastRayNumberInPreviousStage)
+					{
+						if ( !Stage->TraceThrough )
+						{
+							PreviousStageHasRays = false;
+							if (PreviousStageDataArrayIndex > 0)
+							{
+								// TODO: double check PreviousStageDataArrayIndex
+								PreviousStageHasRays = true;
+								PreviousStageDataArrayIndex--; // last ray was previous one
+							}
+						}
+						goto Label_EndStageLoop;
+					}
+					else
+					{
+						// if this the first stage
+						// generate new sun ray but pass the current one to the next stage
+						// otherwise, go to the next stage directly
+						// sine RayNumber in stage i > 0 is read from IncomingRays[]
+						if (cur_stage_i == 0) RayNumber++;
+						continue;
+						// goto Label_StartRayLoop;
+					}
+				}
+
+				MultipleHitCount++;
+
+				// TODO: Virtual stage? What does this do? 
+				if ( Stage->Virtual )
+				{
+					CopyVec3(ray.PosRayOutElement, ray.LastPosRaySurfElement);
+					CopyVec3(ray.CosRayOutElement, ray.LastCosRaySurfElement);
+					goto Label_TransformBackToGlobal;
+				}
+				
+				// now all the rays have been traced
+				// time for optics
+
+				// {Otherwise trace ray through interaction}
+				// {Determine if backside or frontside properties should be used}
+
+				// trace through the interaction
+				optelm = Stage->ElementList[ p_ray->element - 1 ];
+				optics = 0;
+
+				// TODO: Function: TestValue = return_optics_test_value(ray, optelm, optics)
+				if (ray.LastHitBackSide)
+					optics = &optelm->Optics->Back;
+				else
+					optics = &optelm->Optics->Front;
+
+
+				double TestValue;
+				switch(optelm->InteractionType )
+				{
+					case 1: // refraction
+						TestValue = optics->Transmissivity;
+						break;
+					case 2: // reflection
+
+						if ( optics->UseReflectivityTable )
+						{
+							int npoints = optics->ReflectivityTable.size();
+							int m = 0;
+							for (int i = 0; i < 3; i++) {
+								ray.UnitLastDFXYZ[i] = -ray.LastDFXYZ[i]/sqrt(DOT(ray.LastDFXYZ, ray.LastDFXYZ));
+							}
+
+							ray.IncidentAngle = acos(DOT(ray.LastCosRaySurfElement, ray.UnitLastDFXYZ));
+							if (ray.IncidentAngle >= optics->ReflectivityTable[ npoints-1 ].angle )
+							{
+								TestValue = optics->ReflectivityTable[ npoints-1 ].refl;
+							}
+							else
+							{
+								while ( optics->ReflectivityTable[m].angle < ray.IncidentAngle )
+									m++;
+
+								if (m == 0)
+									TestValue = optics->ReflectivityTable[m].refl;
+								else
+									TestValue = (optics->ReflectivityTable[m].refl + optics->ReflectivityTable[m-1].refl)/2.0;
+							}
+						}
+						else
+							TestValue = optics->Reflectivity;
+						break;
+					default:
+						System->errlog("Bad optical interaction type = %d (stage %d)",cur_stage_i,optelm->InteractionType);
+						return false;
+				}
+
+				// Monte Carlo for absorption
+				// {Apply MonteCarlo probability of absorption. Limited for now, but can make more complex later on if desired}
+				if (TestValue <= myrng())
+				{
+					// ray was fully absorbed, so indicate by negating the element number
+					p_ray->element = 0 - p_ray->element;
+
+					if (RayNumber == LastRayNumberInPreviousStage)
+					{
+						PreviousStageHasRays = false;
+						if (PreviousStageDataArrayIndex > 0)
+						{
+							PreviousStageDataArrayIndex--;
+							PreviousStageHasRays = true;
+						}
+						goto Label_EndStageLoop;
+					}
+					else
+					{
+						// if all the rays have been traced, then go to next stage
+						// otherwise, increase RayNumber and generate a new sun ray
+						if (cur_stage_i == 0)
+						{
+							if (RayNumber == NumberOfRays)
+								goto Label_EndStageLoop;
+							else
+								RayNumber++;
+						}
+
+						continue;
+
+						// goto Label_StartRayLoop;
+					}
+				}
+
+// Formerly Label_TransformBackToGlobal
+				// TODO: Function: transform_to_global()
+				Label_TransformBackToGlobal:
+				k = abs( p_ray->element ) - 1;
+
+				if ( !Stage->Virtual )
+				{
+					if (IncludeSunShape && cur_stage_i == 0 && MultipleHitCount == 1)//change to account for first hit only in primary stage 8-11-31
+					{
+						// Apply sunshape to UNPERTURBED ray at intersection point
+						//only apply sunshape error once for primary stage
+						CopyVec3(ray.CosIn, ray.LastCosRaySurfElement);
+						Errors(myrng, ray.CosIn, 1, &System->Sun,
+							   Stage->ElementList[k], optics, ray.CosOut, ray.LastDFXYZ);  //sun shape
+						CopyVec3(ray.LastCosRaySurfElement, ray.CosOut);
+					}
+
+					//{Determine interaction at surface and direction of perturbed ray}
+					ray.ErrorFlag = 0;
+
+					// {Apply surface normal errors to surface normal before interaction ray at intersection point - Wendelin 11-23-09}
+					if( IncludeErrors )
+					{
+						CopyVec3( ray.CosIn, ray.CosRayOutElement );
+						SurfaceNormalErrors(myrng, ray.LastDFXYZ, optics, ray.CosOut);  //surface normal errors
+						CopyVec3( ray.LastDFXYZ, ray.CosOut );
+					}
+
+					Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
+						Stage->ElementList[k]->InteractionType, optics, 630.0,
+						ray.PosRayOutElement, ray.CosRayOutElement, &ray.ErrorFlag);
+
+					// {Apply specularity optical error to PERTURBED (i.e. after interaction) ray at intersection point}
+					if( IncludeErrors )
+					{
+						CopyVec3(ray.CosIn, ray.CosRayOutElement);
+						Errors(myrng, ray.CosIn, 2, &System->Sun,
+							   Stage->ElementList[k], optics, ray.CosOut, ray.LastDFXYZ);  //optical errors
+						CopyVec3(ray.CosRayOutElement, ray.CosOut);
+					}
+				}
+
+				// { Transform ray back to stage coord system and trace through stage again}
+				TransformToReference(ray.PosRayOutElement, ray.CosRayOutElement,
+						Stage->ElementList[k]->Origin, Stage->ElementList[k]->RLocToRef,
+						ray.PosRayStage, ray.CosRayStage);
+				TransformToReference(ray.PosRayStage, ray.CosRayStage,
+						Stage->Origin, Stage->RLocToRef,
+						ray.PosRayGlob, ray.CosRayGlob);
+
+				// Check if allow multiple stage hits
+				// TODO: switch gotos to while true
+				if (!Stage->MultiHitsPerRay)
+				{
+					ray.StageHit = false;
+					goto Label_StageHitLogic;
+				}
+				else
+				{
+					in_multi_hit_loop = true;
+					goto Label_MultiHitLoop;
+				}
+// TODO: Change Label_EndStageLoop to end_stage()
 Label_EndStageLoop:
-			bool no_error;
-			no_error = end_stage(System, st0data, st1in, save_st_data,
-				                 Stage, cur_stage_i, IncomingRays,
-					             StageDataArrayIndex,
-					             PreviousStageHasRays, PreviousStageDataArrayIndex, &LastRayNumberInPreviousStage);
-			if (!no_error) {
-				return false;
+				bool no_error;
+				no_error = end_stage(System, st0data, st1in, save_st_data,
+									 Stage, cur_stage_i, IncomingRays,
+									 StageDataArrayIndex,
+									 PreviousStageHasRays, PreviousStageDataArrayIndex, &LastRayNumberInPreviousStage);
+				if (!no_error) {
+					return false;
+				}
 			}
-
         }
-
+		
         return true;
     }
     catch( const std::exception &e )
