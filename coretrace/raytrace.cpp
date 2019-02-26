@@ -138,6 +138,9 @@ struct Ray
     double PathLength = 0.0;
     double LastPathLength = 0.0;
     bool StageHit = false;
+
+    // TODO: This is only used for the first loop through the first stage so it might be a waste of space
+    double PosRaySun[3] = { 0.0, 0.0, 0.0 };
 };
 
 //structure to store element address and projected polar coordinate size
@@ -177,7 +180,7 @@ static bool eprojdat_compare(const eprojdat &A, const eprojdat &B)
 bool CheckForCancelAndUpdateProgressBar(TSystem *System,
 										int (*callback)(st_uint_t ntracedtotal, st_uint_t ntraced, st_uint_t ntotrace, st_uint_t curstage, st_uint_t nstages, void *data),
 										void *cbdata,
-										int *rays_per_callback_estimate_ptr,
+										int &rays_per_callback_estimate,
 										clock_t startTime,
 										st_uint_t RayNumber,
 										st_uint_t RaysTracedTotal,
@@ -185,16 +188,16 @@ bool CheckForCancelAndUpdateProgressBar(TSystem *System,
 										st_uint_t cur_stage_i
 										) {
 	if (callback != 0
-		&& RaysTracedTotal % *rays_per_callback_estimate_ptr == 0)
+		&& RaysTracedTotal % rays_per_callback_estimate == 0)
 	{
 		if( RaysTracedTotal > 1 )
 		{
 			//update how often to call this
 			double msec_per_ray = 1000.*( clock() - startTime ) / CLOCKS_PER_SEC / (double)(RaysTracedTotal > 0 ? RaysTracedTotal : 1);
 			//set the new callback estimate to be about 50 ms
-			*rays_per_callback_estimate_ptr = (int)( 200. / msec_per_ray );
+			rays_per_callback_estimate = (int)( 200. / msec_per_ray );
 			//limit to something reasonable
-			*rays_per_callback_estimate_ptr = *rays_per_callback_estimate_ptr < 5 ? 5 : *rays_per_callback_estimate_ptr;
+			rays_per_callback_estimate = rays_per_callback_estimate < 5 ? 5 : rays_per_callback_estimate;
 		}
 
 		//do the callback
@@ -210,10 +213,185 @@ bool CheckForCancelAndUpdateProgressBar(TSystem *System,
 
 
 /*
+ * Finds the elements (and # of elements) corresponding to the current stage
+ * that the ray might hit.
+ *
+ * Inputs: Variables as defined in Trace.
+ *
+ * Modified inputs: Output: nintelements and element_list_ptr,
+ * 				    Sometimes modifies sunint_elements, reflint_elements.
+ *
+ */
+void get_elements_in_stage(st_uint_t cur_stage_i,
+						   Ray &ray,
+						   TStage *Stage,
+						   bool in_multi_hit_loop,
+						   bool PT_override,
+						   bool AsPowerTower,
+						   st_hash_tree &sun_hash,
+						   st_hash_tree &rec_hash,
+						   double reccm_helio[3],
+						   vector<TElement*> &sunint_elements,
+						   vector<TElement*> &reflint_elements,
+						   std::vector<TElement*> *element_list_ptr,
+						   st_uint_t &nintelements
+						   ){
+	bool has_elements;
+	has_elements = true;
+	if (cur_stage_i == 0 && !PT_override)
+	{
+
+		if (in_multi_hit_loop)
+		{
+			if (AsPowerTower)
+			{
+				//>=Second time through - checking for first stage multiple element interactions
+
+				//get ray position in receiver polar coordinates
+				double raypvec[3];
+				for (int jj = 0; jj < 3; jj++)
+					raypvec[jj] = ray.PosRayStage[jj] - reccm_helio[jj];
+				double raypvecmag = sqrt(raypvec[0] * raypvec[0] + raypvec[1] * raypvec[1] + raypvec[2] * raypvec[2]);
+				double raypol[2];
+				raypol[0] = atan2(raypvec[0], raypvec[1]);
+				raypol[1] = asin(raypvec[2] / raypvecmag);
+				//get elements in the vicinity of the ray's polar coordinates
+				reflint_elements.clear();
+				rec_hash.get_all_data_at_loc(reflint_elements, raypol[0], raypol[1]);
+				nintelements = reflint_elements.size();
+
+				// Set element_list to reflint_elements
+				element_list_ptr = &reflint_elements;
+
+			}
+			else
+			{
+				nintelements = Stage->ElementList.size();
+
+				// Set element_list to Stage->ElementList
+				element_list_ptr = &((std::vector<TElement*>) Stage->ElementList);
+			}
+		}
+		else
+		{
+			//First time through - checking for sun ray intersections
+
+			// Find the list of elements that could potentially interact with this ray. If empty, continue
+			has_elements = sun_hash.get_all_data_at_loc(sunint_elements, ray.PosRaySun[0], ray.PosRaySun[1]);
+
+			if (has_elements)
+			{
+				nintelements = sunint_elements.size();
+
+				// Set element_list to sunint_elements
+				element_list_ptr = &(sunint_elements);
+			}
+			else
+			{
+				nintelements = 0;
+
+				// No element_list because no elements
+			}
+		}
+	}
+	// If other stage, then check all elements
+	else
+	{
+		nintelements = Stage->ElementList.size();
+
+		// Set element_list to Stage->ElementList
+		element_list_ptr = &((std::vector<TElement*>) Stage->ElementList);
+	}
+
+}
+
+
+/*
+ * Check the ray for intersections with all elements in element_list_ptr.
+ * Modifies ray, LastElementNumber, LastRayNumber.
+ *
+ * Inputs: Variables as defined in Trace.
+ *
+ */
+void check_intersection_in_stage(std::vector<TElement*> *element_list_ptr,
+		   	   	   	             st_uint_t nintelements,
+								 bool PT_override,
+								 st_uint_t cur_stage_i,
+							     Ray &ray,
+								 st_uint_t &LastElementNumber,
+								 st_uint_t &LastRayNumber,
+								 st_uint_t RayNumber){
+	for (st_uint_t j = 0; j < nintelements; j++)
+	{
+		TElement *Element;
+		Element = (*element_list_ptr)[j];
+
+		if (!Element->Enabled)
+			continue;
+
+		//  {Transform ray to element[j] coord system of Stage[i]}
+		TransformToLocal(ray.PosRayStage, ray.CosRayStage,
+			Element->Origin, Element->RRefToLoc,
+			ray.PosRayElement, ray.CosRayElement);
+
+		ray.ErrorFlag = 0;
+		ray.HitBackSide = 0;
+		ray.InterceptFlag = 0;
+
+		// increment position by tiny amount to get off the element if tracing to the same element
+		for (int i = 0; i < 3; i++) {
+			ray.PosRayElement[i] = ray.PosRayElement[i] + 1.0e-5*ray.CosRayElement[i];
+		}
+
+		// {Determine if ray intersects element[j]; if so, Find intersection point with surface of element[j] }
+		DetermineElementIntersectionNew(Element, ray.PosRayElement, ray.CosRayElement,
+			ray.PosRaySurfElement, ray.CosRaySurfElement, ray.DFXYZ,
+			&ray.PathLength, &ray.ErrorFlag, &ray.InterceptFlag, &ray.HitBackSide);
+
+
+
+		if (ray.InterceptFlag)
+		{
+			//{If hit multiple elements, this loop determines which one hit first.
+			//Also makes sure that correct part of closed surface is hit. Also, handles wavy, but close to flat zernikes and polynomials correctly.}
+			//if (PathLength < LastPathLength) and (PosRaySurfElement[2] <= Element->ZAperture) then
+			if (ray.PathLength < ray.LastPathLength)
+			{
+				if (ray.PosRaySurfElement[2] <= Element->ZAperture
+					|| Element->SurfaceIndex == 'm'
+					|| Element->SurfaceIndex == 'M'
+					|| Element->SurfaceIndex == 'r'
+					|| Element->SurfaceIndex == 'R')
+				{
+					ray.StageHit = true;
+					ray.LastPathLength = ray.PathLength;
+					CopyVec3(ray.LastPosRaySurfElement, ray.PosRaySurfElement);
+					CopyVec3(ray.LastCosRaySurfElement, ray.CosRaySurfElement);
+					CopyVec3(ray.LastDFXYZ, ray.DFXYZ);
+					LastElementNumber = (cur_stage_i == 0 && !PT_override) ? Element->element_number : j + 1;    //mjw change from j index to element id
+					// TODO: The lastRayNumber=RayNumber might be reduntant, and is the only place these variables
+					// are used in this fuction
+					LastRayNumber = RayNumber;
+					TransformToReference(ray.PosRaySurfElement, ray.CosRaySurfElement,
+						Element->Origin, Element->RLocToRef,
+						ray.PosRaySurfStage, ray.CosRaySurfStage);
+
+					CopyVec3(ray.LastPosRaySurfStage, ray.PosRaySurfStage);
+					CopyVec3(ray.LastCosRaySurfStage, ray.CosRaySurfStage);
+					ray.LastHitBackSide = ray.HitBackSide;
+				}
+			}
+		}
+	}
+}
+
+
+/*
  * Does the end of stage wrap-up of rays.
+ * Warn: Changes LastRayNumberInPreviousStage
  *
  * Input: Variables as defined in Trace.
- *        LastRayNumberInPreviousStage_ptr is a pointer to LastRayNumberInPreviousStage and will be modified.
+ *        LastRayNumberInPreviousStage is a reference to LastRayNumberInPreviousStage and will be modified.
  *
  * Return: Boolean: false - error; true - ended as expected
  *
@@ -224,11 +402,11 @@ bool end_stage(TSystem *System,
 			   bool save_st_data,
 		       TStage *Stage,
 			   st_uint_t cur_stage_i,
-			   std::vector<GlobalRay> IncomingRays,
+			   std::vector<GlobalRay> &IncomingRays,
 			   st_uint_t StageDataArrayIndex,
 			   bool PreviousStageHasRays,
 			   st_uint_t PreviousStageDataArrayIndex,
-			   st_uint_t *LastRayNumberInPreviousStage_ptr
+			   st_uint_t &LastRayNumberInPreviousStage
 			   ){
 	if(cur_stage_i==0 && save_st_data)
 	{
@@ -270,12 +448,12 @@ bool end_stage(TSystem *System,
 	if (!PreviousStageHasRays)
 	{
 		// no rays to carry forward
-		*LastRayNumberInPreviousStage_ptr = 0;
+		LastRayNumberInPreviousStage = 0;
 	}
 	else if (PreviousStageDataArrayIndex < IncomingRays.size())
 	{
-		*LastRayNumberInPreviousStage_ptr = IncomingRays[PreviousStageDataArrayIndex].Num;
-		if (*LastRayNumberInPreviousStage_ptr == 0)
+		LastRayNumberInPreviousStage = IncomingRays[PreviousStageDataArrayIndex].Num;
+		if (LastRayNumberInPreviousStage == 0)
 		{
 			size_t pp = IncomingRays[PreviousStageDataArrayIndex-1].Num;
 			System->errlog("LastRayNumberInPreviousStage=0, stage %d, PrevIdx=%d, CurIdx=%d, pp=%d", cur_stage_i+1,
@@ -649,8 +827,7 @@ bool Trace(TSystem *System, unsigned int seed,
         //declare items used within the loop
         vector<TElement*> sunint_elements;
         vector<TElement*> reflint_elements;
-        bool has_elements;
-        std::vector<TElement*> element_list;
+        std::vector<TElement*> *element_list_ptr;
 
         time("Starting stage calculations:\t", &fout);
 #ifdef WITH_DEBUG_TIMER
@@ -733,18 +910,17 @@ bool Trace(TSystem *System, unsigned int seed,
 				MultipleHitCount = 0;
 				sunint_elements.clear();
 
-				has_elements = true;
+
 				// Load the ray and trace it.
-				// First stage. Generate a ray and get elements that could interact
+				// First stage. Generate a ray.
 				if (cur_stage_i == 0)
 				{
 
 					// we are in the first stage, so
 					// generate a new sun ray in global coords
-					double PosRaySun[3];
 					GenerateRay(myrng, System->Sun.PosSunStage, Stage->Origin,
 						Stage->RLocToRef, &System->Sun,
-						ray.PosRayGlob, ray.CosRayGlob, PosRaySun);
+						ray.PosRayGlob, ray.CosRayGlob, ray.PosRaySun);
 					System->SunRayCount++;
 
 
@@ -753,12 +929,7 @@ bool Trace(TSystem *System, unsigned int seed,
 						System->errlog("generated sun rays reached maximum count: %d", MaxNumberOfRays);
 						return false;
 					}
-
-					// Find the list of elements that could potentially interact with this ray. If empty, continue
 					
-					if (!PT_override) //AsPowerTower)
-						has_elements = sun_hash.get_all_data_at_loc(sunint_elements, PosRaySun[0], PosRaySun[1]);
-
 				}
 				// TODO: Add handler for i > 0 stage : DONE
 				// Other stages. Load the ray from the previous stage.
@@ -782,7 +953,7 @@ bool Trace(TSystem *System, unsigned int seed,
 				// Increment RaysTracedTotal then check callback
 				RaysTracedTotal++;
 				bool cancel = CheckForCancelAndUpdateProgressBar(System, callback, cbdata,
-					&rays_per_callback_estimate,
+					rays_per_callback_estimate,
 					startTime, RayNumber, RaysTracedTotal,
 					LastRayNumberInPreviousStage, cur_stage_i);
 				if (cancel) { return true; }
@@ -797,137 +968,22 @@ bool Trace(TSystem *System, unsigned int seed,
 				ray.LastPathLength = 1e99;
 				ray.StageHit = false;
 
-				st_uint_t nintelements;
-				// std::vector<TElement*> element_list;
 				// Find number of elements to check intersections with, and set element_list
-
-				// TODO: FUNCTION: nintelements, element_list = get_elements_in_stage(curr_stage_i, has_element, in_multi_hit_loop)
-				// in_multi_hit_loop is only used once, change to checking if nintelements > 0
-
-
-				if (cur_stage_i == 0 && !PT_override)
-				{
-					if (in_multi_hit_loop)
-					{
-						if (AsPowerTower)
-						{
-							//>=Second time through - checking for first stage multiple element interactions
-
-							//get ray position in receiver polar coordinates
-							double raypvec[3];
-							for (int jj = 0; jj < 3; jj++)
-								raypvec[jj] = ray.PosRayStage[jj] - reccm_helio[jj];
-							double raypvecmag = sqrt(raypvec[0] * raypvec[0] + raypvec[1] * raypvec[1] + raypvec[2] * raypvec[2]);
-							double raypol[2];
-							raypol[0] = atan2(raypvec[0], raypvec[1]);
-							raypol[1] = asin(raypvec[2] / raypvecmag);
-							//get elements in the vicinity of the ray's polar coordinates
-							reflint_elements.clear();
-							rec_hash.get_all_data_at_loc(reflint_elements, raypol[0], raypol[1]);
-							nintelements = reflint_elements.size();
-							has_elements = nintelements > 0;
-
-							// Set element_list to reflint_elements
-							element_list = reflint_elements;
-
-						}
-						else
-						{
-							nintelements = Stage->ElementList.size();
-
-							// Set element_list to Stage->ElementList
-							element_list = (std::vector<TElement*>) Stage->ElementList;
-						}
-					}
-					else
-					{
-						//First time through - checking for sun ray intersections
-						if (has_elements)
-						{
-							nintelements = sunint_elements.size();
-
-							// Set element_list to sunint_elements
-							element_list = sunint_elements;
-						}
-						else
-						{
-							nintelements = 0;
-
-							// No element_list because no elements
-						}
-					}
-				}
-				// If other stage, then check all elements
-				else
-				{
-					nintelements = Stage->ElementList.size();
-
-					// Set element_list to Stage->ElementList
-					element_list = (std::vector<TElement*>) Stage->ElementList;
-				}
-
-				// check for ray intersections
-				// TODO: FUNCTION: check_intersection_in_stage(){
-				for (st_uint_t j = 0; j < nintelements; j++)
-				{
-					TElement *Element;
-					Element = element_list[j];
-
-					if (!Element->Enabled)
-						continue;
-
-					//  {Transform ray to element[j] coord system of Stage[i]}
-					TransformToLocal(ray.PosRayStage, ray.CosRayStage,
-						Element->Origin, Element->RRefToLoc,
-						ray.PosRayElement, ray.CosRayElement);
-
-					ray.ErrorFlag = 0;
-					ray.HitBackSide = 0;
-					ray.InterceptFlag = 0;
-
-					// increment position by tiny amount to get off the element if tracing to the same element
-					for (int i = 0; i < 3; i++) {
-						ray.PosRayElement[i] = ray.PosRayElement[i] + 1.0e-5*ray.CosRayElement[i];
-					}
-
-					// {Determine if ray intersects element[j]; if so, Find intersection point with surface of element[j] }
-					DetermineElementIntersectionNew(Element, ray.PosRayElement, ray.CosRayElement,
-						ray.PosRaySurfElement, ray.CosRaySurfElement, ray.DFXYZ,
-						&ray.PathLength, &ray.ErrorFlag, &ray.InterceptFlag, &ray.HitBackSide);
+				st_uint_t nintelements;
+				get_elements_in_stage(cur_stage_i, ray, Stage,
+									  in_multi_hit_loop,
+									  PT_override, AsPowerTower,
+									  sun_hash, rec_hash, reccm_helio,
+									  sunint_elements, reflint_elements,
+									  element_list_ptr, nintelements);
 
 
+				// Check for ray intersections
+				check_intersection_in_stage(element_list_ptr, nintelements,
+					PT_override, cur_stage_i,
+					ray,
+					LastElementNumber, LastRayNumber, RayNumber);
 
-					if (ray.InterceptFlag)
-					{
-						//{If hit multiple elements, this loop determines which one hit first.
-						//Also makes sure that correct part of closed surface is hit. Also, handles wavy, but close to flat zernikes and polynomials correctly.}
-						//if (PathLength < LastPathLength) and (PosRaySurfElement[2] <= Element->ZAperture) then
-						if (ray.PathLength < ray.LastPathLength)
-						{
-							if (ray.PosRaySurfElement[2] <= Element->ZAperture
-								|| Element->SurfaceIndex == 'm'
-								|| Element->SurfaceIndex == 'M'
-								|| Element->SurfaceIndex == 'r'
-								|| Element->SurfaceIndex == 'R')
-							{
-								ray.StageHit = true;
-								ray.LastPathLength = ray.PathLength;
-								CopyVec3(ray.LastPosRaySurfElement, ray.PosRaySurfElement);
-								CopyVec3(ray.LastCosRaySurfElement, ray.CosRaySurfElement);
-								CopyVec3(ray.LastDFXYZ, ray.DFXYZ);
-								LastElementNumber = (cur_stage_i == 0 && !PT_override) ? Element->element_number : j + 1;    //mjw change from j index to element id
-								LastRayNumber = RayNumber;
-								TransformToReference(ray.PosRaySurfElement, ray.CosRaySurfElement,
-									Element->Origin, Element->RLocToRef,
-									ray.PosRaySurfStage, ray.CosRaySurfStage);
-
-								CopyVec3(ray.LastPosRaySurfStage, ray.PosRaySurfStage);
-								CopyVec3(ray.LastCosRaySurfStage, ray.CosRaySurfStage);
-								ray.LastHitBackSide = ray.HitBackSide;
-							}
-						}
-					}
-				}
 
 			Label_StageHitLogic:
 				if (!ray.StageHit)
@@ -1208,7 +1264,7 @@ Label_EndStageLoop:
 				no_error = end_stage(System, st0data, st1in, save_st_data,
 									 Stage, cur_stage_i, IncomingRays,
 									 StageDataArrayIndex,
-									 PreviousStageHasRays, PreviousStageDataArrayIndex, &LastRayNumberInPreviousStage);
+									 PreviousStageHasRays, PreviousStageDataArrayIndex, LastRayNumberInPreviousStage);
 				if (!no_error) {
 					return false;
 				}
