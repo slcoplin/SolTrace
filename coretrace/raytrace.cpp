@@ -386,6 +386,8 @@ void check_intersection_in_stage(std::vector<TElement*> *element_list_ptr,
 }
 
 
+
+
 /*
  * Does the end of stage wrap-up of rays.
  * Warn: Changes LastRayNumberInPreviousStage
@@ -995,7 +997,6 @@ bool Trace(TSystem *System, unsigned int seed,
 						if (MultipleHitCount == 0) {
 							PreviousStageDataArrayIndex--;
 							continue;
-							// goto Label_StartRayLoop; // ray misses 1st stage completely so get a new sun ray
 						}
 						else
 						{
@@ -1020,8 +1021,6 @@ bool Trace(TSystem *System, unsigned int seed,
 						}
 					}
 
-					// TODO: Add handler for stage i>0 and  FLAG_MISSED
-					
 					else
 					{
 						// stages beyond first stage
@@ -1038,13 +1037,10 @@ bool Trace(TSystem *System, unsigned int seed,
 							// PreviousStageDataArrayIndex++;
 							PreviousStageHasRays = true;
 
-							if (MultipleHitCount == 0)
-								goto Label_FlagMiss;
-
-							continue;
-							// goto Label_StartRayLoop;
+							if (MultipleHitCount != 0){
+								continue;
+							}
 						}
-Label_FlagMiss:
 						LastElementNumber = 0;
 						LastRayNumber = RayNumber;
 						CopyVec3(ray.LastPosRaySurfStage, ray.PosRayStage);
@@ -1088,9 +1084,11 @@ Label_FlagMiss:
 						// generate new sun ray but pass the current one to the next stage
 						// otherwise, go to the next stage directly
 						// sine RayNumber in stage i > 0 is read from IncomingRays[]
-						if (cur_stage_i == 0) RayNumber++;
+						if (cur_stage_i == 0)
+						{
+							RayNumber++;
+						}
 						continue;
-						// goto Label_StartRayLoop;
 					}
 				}
 
@@ -1191,8 +1189,6 @@ Label_FlagMiss:
 						}
 
 						continue;
-
-						// goto Label_StartRayLoop;
 					}
 				}
 
@@ -1201,6 +1197,7 @@ Label_FlagMiss:
 				Label_TransformBackToGlobal:
 				k = abs( p_ray->element ) - 1;
 
+				// Do the ray interaction (reflect, etc)
 				if ( !Stage->Virtual )
 				{
 					if (IncludeSunShape && cur_stage_i == 0 && MultipleHitCount == 1)//change to account for first hit only in primary stage 8-11-31
