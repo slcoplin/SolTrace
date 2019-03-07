@@ -233,7 +233,7 @@ void get_elements_in_stage(st_uint_t cur_stage_i,
 						   double reccm_helio[3],
 						   vector<TElement*> &sunint_elements,
 						   vector<TElement*> &reflint_elements,
-						   std::vector<TElement*> *element_list_ptr,
+						   std::vector<TElement*> *&element_list_ptr,
 						   st_uint_t &nintelements
 						   ){
 	bool has_elements;
