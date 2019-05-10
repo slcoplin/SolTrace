@@ -69,9 +69,8 @@
 
 void time(const char *message, ofstream *fout)
 {
-#ifdef WITH_DEBUG_TIMER
     (*fout) << message << chrono::duration_cast< chrono::milliseconds >( chrono::system_clock::now().time_since_epoch() ).count() << "\n";
-#endif
+
 }
 
 inline void CopyVec3( double dest[3], const std::vector<double> &src )
@@ -173,8 +172,7 @@ static bool eprojdat_compare(const eprojdat &A, const eprojdat &B)
  *
  * Inputs: Variables as defined in Trace.
  *
- * Modified inputs: Output: nintelements and element_list_ptr,
- * 				    Sometimes modifies sunint_elements, reflint_elements.
+ * Modified inputs: Output: nintelements and element_list_ptr
  *
  */
 void get_elements_in_stage(TStage *Stage,
@@ -394,25 +392,12 @@ bool Trace(TSystem *System, unsigned int seed,
         fout.clear();
 #else
         ofstream fout;
-#endif
-
-        time("Initialize:\t", &fout);
-
-        //declare items used within the loop
-        vector<TElement*> sunint_elements;
-        vector<TElement*> reflint_elements;
-        std::vector<TElement*> *element_list_ptr;
 
         time("Starting stage calculations:\t", &fout);
-#ifdef WITH_DEBUG_TIMER
+
         fout.close();
 #endif
-
-        //use the callbacks based on elapsed time rather than fixed rays processed.
-
-        clock_t startTime = clock();     //start timer
-        int rays_per_callback_estimate = 50;    //starting rough estimate for how often to check the clock
-
+        
         for (st_uint_t cur_stage_i=0;cur_stage_i<System->StageList.size();cur_stage_i++)
         {
 
@@ -441,7 +426,6 @@ bool Trace(TSystem *System, unsigned int seed,
 			for (int PreviousStageDataArrayIndex = 0; PreviousStageDataArrayIndex <= NumberOfRays; PreviousStageDataArrayIndex++) {
 
 				MultipleHitCount = 0;
-				sunint_elements.clear();
 
 
 				// Load the ray and trace it.
@@ -495,6 +479,7 @@ bool Trace(TSystem *System, unsigned int seed,
 
 				// Find number of elements to check intersections with, and set element_list
 				st_uint_t nintelements;
+                std::vector<TElement*> *element_list_ptr;
 				get_elements_in_stage(Stage, element_list_ptr, nintelements);
 
 
