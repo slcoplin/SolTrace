@@ -315,6 +315,22 @@ bool end_stage(TSystem *System,
 	return true;
 }
 
+bool check_input(st_uint_t NumberOfRays, TSystem *System){
+    if (NumberOfRays < 1)
+    {
+        System->errlog("invalid number of rays: %d", NumberOfRays);
+        return false;
+    }
+
+    if (System->StageList.size() < 1)
+    {
+        System->errlog("no stages defined.");
+        return false;
+    }
+
+    return true;
+}
+
 bool Trace(TSystem *System, unsigned int seed,
            st_uint_t NumberOfRays,
            st_uint_t MaxNumberOfRays,
@@ -330,10 +346,7 @@ bool Trace(TSystem *System, unsigned int seed,
     st_uint_t LastElementNumber = 0, LastRayNumber = 0;
     st_uint_t MultipleHitCount = 0;
 
-
-	for (int i = 0; i < 3; i++) {
-		System->Sun.PosSunStage[i] = 0.0;
-	}
+	ZeroVec(System->Sun.PosSunStage)
 
     // Initialize ray variables
     Ray ray;
@@ -344,12 +357,8 @@ bool Trace(TSystem *System, unsigned int seed,
     st_uint_t PreviousStageDataArrayIndex = 0;
     st_uint_t LastRayNumberInPreviousStage = NumberOfRays;
 
-    ZeroVec( ray.LastPosRaySurfStage );
-    ZeroVec( ray.LastCosRaySurfStage );
-
     //bool aspowertower_ok = false;
     bool in_multi_hit_loop = false;
-
 
     try
     {
@@ -365,17 +374,7 @@ bool Trace(TSystem *System, unsigned int seed,
         st_uint_t RayNumber = 1;
         MTRand myrng(seed);
 
-        if (NumberOfRays < 1)
-        {
-            System->errlog("invalid number of rays: %d", NumberOfRays);
-            return false;
-        }
-
-        if (System->StageList.size() < 1)
-        {
-            System->errlog("no stages defined.");
-            return false;
-        }
+        assert(check_input(NumberOfRays, System));
 
         try
         {
@@ -386,8 +385,9 @@ bool Trace(TSystem *System, unsigned int seed,
         }
 
 
-        if (!SunToPrimaryStage(System, System->StageList[0], &System->Sun, System->Sun.PosSunStage))
+        if (!SunToPrimaryStage(System, System->StageList[0], &System->Sun, System->Sun.PosSunStage)){
             return false;
+        }
 
 #ifdef WITH_DEBUG_TIMER
         ofstream fout("C:\\Users\\mwagner\\Documents\\NREL\\Dev\\SolTraceWX\\log.txt");
@@ -480,7 +480,6 @@ bool Trace(TSystem *System, unsigned int seed,
 			// loop through rays within each stage
 			for (int PreviousStageDataArrayIndex = 0; PreviousStageDataArrayIndex <= NumberOfRays; PreviousStageDataArrayIndex++) {
 
-				// Formerly Label_StartRayLoop:
 				MultipleHitCount = 0;
 				sunint_elements.clear();
 
@@ -567,7 +566,6 @@ bool Trace(TSystem *System, unsigned int seed,
 
 						RayNumber++;
 						continue;
-						// goto Label_StartRayLoop;
 					}
 
 					else
@@ -741,7 +739,6 @@ bool Trace(TSystem *System, unsigned int seed,
 					}
 				}
 
-// Formerly Label_TransformBackToGlobal
 				// TODO: Function: transform_to_global()
 				Label_TransformBackToGlobal:
 				k = abs( p_ray->element ) - 1;
