@@ -281,9 +281,6 @@ void check_intersection_in_stage(std::vector<TElement*> *element_list_ptr,
  *
  */
 bool end_stage(TSystem *System,
-			   std::vector< std::vector< double > > *st0data,
-		       std::vector< std::vector< double > > *st1in,
-			   bool save_st_data,
 		       TStage *Stage,
 			   st_uint_t cur_stage_i,
 			   std::vector<GlobalRay> &IncomingRays,
@@ -292,42 +289,6 @@ bool end_stage(TSystem *System,
 			   st_uint_t PreviousStageDataArrayIndex,
 			   st_uint_t &LastRayNumberInPreviousStage
 			   ){
-	if(cur_stage_i==0 && save_st_data)
-	{
-		//if flagged save the stage 0 incoming rays data
-		TRayData *raydat = &Stage->RayData;
-		st_uint_t nray0 = raydat->Count();
-
-		for(st_uint_t ii=0; ii<nray0; ii++)
-		{
-			TRayData::ray_t *rr = raydat->Index(ii,false);
-
-			std::vector<double> ray(8);
-			for(int j=0; j<3; j++)
-				ray[j] = rr->pos[j];
-			for(int j=0; j<3; j++)
-				ray[j+3] = rr->cos[j];
-			ray[6] = rr->element;
-			ray[7] = rr->raynum;
-			st0data->push_back(ray);
-		}
-	}
-
-	if(cur_stage_i==1 && save_st_data)
-	{
-		//if flagged, save the stage 1 incoming rays data to the data structure passed into the algorithm
-		for(int ir=0; ir<StageDataArrayIndex; ir++)
-		{
-			st1in->push_back(std::vector<double>(7));
-			for(int jr=0; jr<3; jr++)
-			{
-				st1in->back().at(jr) = IncomingRays[ir].Pos[jr];
-				st1in->back().at(jr+3) = IncomingRays[ir].Cos[jr];
-			}
-			st1in->back().at(6) = IncomingRays[ir].Num;
-		}
-	}
-
 
 	if (!PreviousStageHasRays)
 	{
@@ -364,14 +325,8 @@ bool Trace(TSystem *System, unsigned int seed,
            void *cbdata,
            std::vector< std::vector< double > > *st0data,
            std::vector< std::vector< double > > *st1in,
-           bool save_st_data)
+           bool save_st_data) // FALSE, st0data and st1in are null.
 {
-    bool load_st_data = st0data != 0 && st1in != 0;
-    if(load_st_data)
-    {
-        load_st_data = st0data->size() > 0 && st1in->size() > 0;
-    }
-
     st_uint_t LastElementNumber = 0, LastRayNumber = 0;
     st_uint_t MultipleHitCount = 0;
 
@@ -409,17 +364,6 @@ bool Trace(TSystem *System, unsigned int seed,
         System->SunRayCount=0;
         st_uint_t RayNumber = 1;
         MTRand myrng(seed);
-
-        if( load_st_data && st0data->size() < 1)
-        {
-            System->errlog("empty stage 0 data array provided to Trace()");
-            return false;
-        }
-        if( load_st_data && st1in->size() < 1 )
-        {
-            System->errlog("empty stage 1 data array provided to Trace()");
-            return false;
-        }
 
         if (NumberOfRays < 1)
         {
@@ -527,46 +471,6 @@ bool Trace(TSystem *System, unsigned int seed,
 
             StageDataArrayIndex = 0;
             PreviousStageDataArrayIndex = 0;
-
-			// TODO: Unflagged loading data
-#ifdef FLAGGED_FOR_NO_LOADING_DATA
-            //if loading stage 0 data, construct appropriate arrays here
-            if(cur_stage_i==0 && load_st_data)
-            {
-                double rpos[3],rcos[3];
-                //Stage 0 data
-                for(int j=0; j<st0data->size(); j++)
-                {
-
-                    LoadExistingStage0Ray(j, st0data,
-                        rpos, rcos,
-                        LastElementNumber, LastRayNumber);
-
-
-                    p_ray = Stage->RayData.Append(
-                        rpos, rcos,
-                        LastElementNumber, 1,
-                        LastRayNumber );
-
-                }
-
-                //stage 1 data
-                for(int j=0; j<st1in->size(); j++)
-                {
-                    int rnum;
-                    LoadExistingStage1Ray(j, st1in, rpos, rcos, rnum);
-                    CopyVec3(IncomingRays[j].Pos, rpos);
-                    CopyVec3(IncomingRays[j].Cos, rcos);
-                    IncomingRays[j].Num = rnum;
-                }
-
-                PreviousStageHasRays = true;
-                PreviousStageDataArrayIndex = st1in->size()-1;
-                System->SunRayCount = LastRayNumber;
-                goto Label_EndStageLoop;
-            }
-
-#endif
 
 
 			// PB: good place for adding loop. IncomingRays already has a vector of size NumberOfRays
@@ -903,7 +807,7 @@ bool Trace(TSystem *System, unsigned int seed,
 // TODO: Change Label_EndStageLoop to end_stage()
 Label_EndStageLoop:
 				bool no_error;
-				no_error = end_stage(System, st0data, st1in, save_st_data,
+				no_error = end_stage(System,
 									 Stage, cur_stage_i, IncomingRays,
 									 StageDataArrayIndex,
 									 PreviousStageHasRays, PreviousStageDataArrayIndex, LastRayNumberInPreviousStage);
