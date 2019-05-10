@@ -398,46 +398,6 @@ bool Trace(TSystem *System, unsigned int seed,
 
         time("Initialize:\t", &fout);
 
-
-//#define WRITE_NODE_FILE
-#ifdef WRITE_NODE_FILE
-        {
-        //Write out to a file for debugging
-        ofstream fout2("C:\\Users\\mwagner\\Documents\\NREL\\Dev\\SolTraceWX\\meshxy.txt");
-        fout2.clear();
-
-        fout2 << "node,xmin,xmax,ymin,ymax\n";
-
-        vector<st_opt_element>* all_nodes = sun_hash.get_all_nodes();
-        for(int i=0; i<all_nodes->size(); i++)
-        {
-            double* xr = all_nodes->at(i).get_xr();
-            double* yr = all_nodes->at(i).get_yr();
-
-            fout2 << all_nodes->at(i).get_address() << "," << xr[0] << "," << xr[1] << "," << yr[0] << "," << yr[1] << "\n";
-        }
-
-        fout2.close();
-
-        ofstream fout3("C:\\Users\\mwagner\\Documents\\NREL\\Dev\\SolTraceWX\\meshpolar.txt");
-        fout3.clear();
-
-        fout3 << "node,xmin,xmax,ymin,ymax\n";
-
-        all_nodes = rec_hash.get_all_nodes();
-        for(int i=0; i<all_nodes->size(); i++)
-        {
-            double* xr = all_nodes->at(i).get_xr();
-            double* yr = all_nodes->at(i).get_yr();
-
-            fout3 << all_nodes->at(i).get_address() << "," << xr[0] << "," << xr[1] << "," << yr[0] << "," << yr[1] << "\n";
-        }
-
-        fout3.close();
-        }
-#endif
-
-
         //declare items used within the loop
         vector<TElement*> sunint_elements;
         vector<TElement*> reflint_elements;
