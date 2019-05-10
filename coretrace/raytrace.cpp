@@ -647,33 +647,23 @@ bool Trace(TSystem *System, unsigned int seed,
 				{
 					if (cur_stage_i == 0) // first stage only
 					{
-						// first-time generated ray missed the stage completely
-						// go back to the ray loop but without increasing the index
-						if (MultipleHitCount == 0) {
-							PreviousStageDataArrayIndex--;
-							continue;
-						}
-						else
-						{
+						// at least one hit on stage, so move on to next ray
+						CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Pos, ray.PosRayGlob);
+						CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Cos, ray.CosRayGlob);
+						IncomingRays[PreviousStageDataArrayIndex].Num = RayNumber;
 
-							// at least one hit on stage, so move on to next ray
-							CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Pos, ray.PosRayGlob);
-							CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Cos, ray.CosRayGlob);
-							IncomingRays[PreviousStageDataArrayIndex].Num = RayNumber;
+						if (RayNumber == NumberOfRays)
+							// TODO: change to end_stage()
+							goto Label_EndStageLoop;
 
-							if (RayNumber == NumberOfRays)
-								// TODO: change to end_stage()
-								goto Label_EndStageLoop;
+						// PreviousStageDataArrayIndex++;
+						PreviousStageHasRays = true;
 
-							// PreviousStageDataArrayIndex++;
-							PreviousStageHasRays = true;
+						// continue ray loop
 
-							// continue ray loop
-
-							RayNumber++;
-							continue;
-							// goto Label_StartRayLoop;
-						}
+						RayNumber++;
+						continue;
+						// goto Label_StartRayLoop;
 					}
 
 					else
