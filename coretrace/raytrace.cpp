@@ -580,102 +580,95 @@ bool Trace(TSystem *System, unsigned int seed,
 
 				MultipleHitCount++;
 
-				// TODO: Virtual stage? What does this do?
-				if ( Stage->Virtual )
-				{
-					CopyVec3(ray.PosRayOutElement, ray.LastPosRaySurfElement);
-					CopyVec3(ray.CosRayOutElement, ray.LastCosRaySurfElement);
-				}
 				// now all the rays have been traced
 				// time for optics
-                else {
-    				// {Otherwise trace ray through interaction}
-    				// {Determine if backside or frontside properties should be used}
 
-    				// trace through the interaction
-    				optelm = Stage->ElementList[ p_ray->element - 1 ];
-    				optics = 0;
+				// {Otherwise trace ray through interaction}
+				// {Determine if backside or frontside properties should be used}
 
-    				// TODO: Function: TestValue = return_optics_test_value(ray, optelm, optics)
-    				if (ray.LastHitBackSide)
-    					optics = &optelm->Optics->Back;
-    				else
-    					optics = &optelm->Optics->Front;
+				// trace through the interaction
+				optelm = Stage->ElementList[ p_ray->element - 1 ];
+				optics = 0;
+
+				// TODO: Function: TestValue = return_optics_test_value(ray, optelm, optics)
+				if (ray.LastHitBackSide)
+					optics = &optelm->Optics->Back;
+				else
+					optics = &optelm->Optics->Front;
 
 
-    				double TestValue;
-    				switch(optelm->InteractionType )
-    				{
-    					case 1: // refraction
-    						TestValue = optics->Transmissivity;
-    						break;
-    					case 2: // reflection
+				double TestValue;
+				switch(optelm->InteractionType )
+				{
+					case 1: // refraction
+						TestValue = optics->Transmissivity;
+						break;
+					case 2: // reflection
 
-    						if ( optics->UseReflectivityTable )
-    						{
-    							int npoints = optics->ReflectivityTable.size();
-    							int m = 0;
-    							for (int i = 0; i < 3; i++) {
-    								ray.UnitLastDFXYZ[i] = -ray.LastDFXYZ[i]/sqrt(DOT(ray.LastDFXYZ, ray.LastDFXYZ));
-    							}
+						if ( optics->UseReflectivityTable )
+						{
+							int npoints = optics->ReflectivityTable.size();
+							int m = 0;
+							for (int i = 0; i < 3; i++) {
+								ray.UnitLastDFXYZ[i] = -ray.LastDFXYZ[i]/sqrt(DOT(ray.LastDFXYZ, ray.LastDFXYZ));
+							}
 
-    							ray.IncidentAngle = acos(DOT(ray.LastCosRaySurfElement, ray.UnitLastDFXYZ));
-    							if (ray.IncidentAngle >= optics->ReflectivityTable[ npoints-1 ].angle )
-    							{
-    								TestValue = optics->ReflectivityTable[ npoints-1 ].refl;
-    							}
-    							else
-    							{
-    								while ( optics->ReflectivityTable[m].angle < ray.IncidentAngle )
-    									m++;
+							ray.IncidentAngle = acos(DOT(ray.LastCosRaySurfElement, ray.UnitLastDFXYZ));
+							if (ray.IncidentAngle >= optics->ReflectivityTable[ npoints-1 ].angle )
+							{
+								TestValue = optics->ReflectivityTable[ npoints-1 ].refl;
+							}
+							else
+							{
+								while ( optics->ReflectivityTable[m].angle < ray.IncidentAngle )
+									m++;
 
-    								if (m == 0)
-    									TestValue = optics->ReflectivityTable[m].refl;
-    								else
-    									TestValue = (optics->ReflectivityTable[m].refl + optics->ReflectivityTable[m-1].refl)/2.0;
-    							}
-    						}
-    						else
-    							TestValue = optics->Reflectivity;
-    						break;
-    					default:
-    						System->errlog("Bad optical interaction type = %d (stage %d)",cur_stage_i,optelm->InteractionType);
-    						return false;
-    				}
+								if (m == 0)
+									TestValue = optics->ReflectivityTable[m].refl;
+								else
+									TestValue = (optics->ReflectivityTable[m].refl + optics->ReflectivityTable[m-1].refl)/2.0;
+							}
+						}
+						else
+							TestValue = optics->Reflectivity;
+						break;
+					default:
+						System->errlog("Bad optical interaction type = %d (stage %d)",cur_stage_i,optelm->InteractionType);
+						return false;
+				}
 
-    				// Monte Carlo for absorption
-    				// {Apply MonteCarlo probability of absorption. Limited for now, but can make more complex later on if desired}
-    				if (TestValue <= myrng())
-    				{
-    					// ray was fully absorbed, so indicate by negating the element number
-    					p_ray->element = 0 - p_ray->element;
+				// Monte Carlo for absorption
+				// {Apply MonteCarlo probability of absorption. Limited for now, but can make more complex later on if desired}
+				if (TestValue <= myrng())
+				{
+					// ray was fully absorbed, so indicate by negating the element number
+					p_ray->element = 0 - p_ray->element;
 
-    					if (RayNumber == LastRayNumberInPreviousStage)
-    					{
-    						PreviousStageHasRays = false;
-    						if (PreviousStageDataArrayIndex > 0)
-    						{
-    							PreviousStageDataArrayIndex--;
-    							PreviousStageHasRays = true;
-    						}
-    						goto Label_EndStageLoop;
-    					}
-    					else
-    					{
-    						// if all the rays have been traced, then go to next stage
-    						// otherwise, increase RayNumber and generate a new sun ray
-    						if (cur_stage_i == 0)
-    						{
-    							if (RayNumber == NumberOfRays)
-    								goto Label_EndStageLoop;
-    							else
-    								RayNumber++;
-    						}
+					if (RayNumber == LastRayNumberInPreviousStage)
+					{
+						PreviousStageHasRays = false;
+						if (PreviousStageDataArrayIndex > 0)
+						{
+							PreviousStageDataArrayIndex--;
+							PreviousStageHasRays = true;
+						}
+						goto Label_EndStageLoop;
+					}
+					else
+					{
+						// if all the rays have been traced, then go to next stage
+						// otherwise, increase RayNumber and generate a new sun ray
+						if (cur_stage_i == 0)
+						{
+							if (RayNumber == NumberOfRays)
+								goto Label_EndStageLoop;
+							else
+								RayNumber++;
+						}
 
-    						continue;
-    					}
-    				}
-                }
+						continue;
+					}
+				}
 
                 // Does the interaction with the element collided with, and
                 // converts the ray into the global reference frame
@@ -683,27 +676,23 @@ bool Trace(TSystem *System, unsigned int seed,
 				k = abs( p_ray->element ) - 1;
 
 				// Do the ray interaction (reflect, etc)
-                // TODO condense this if with the if !Stage->Virtual immediately above
-				if ( !Stage->Virtual )
+				if (IncludeSunShape && cur_stage_i == 0 && MultipleHitCount == 1)//change to account for first hit only in primary stage 8-11-31
 				{
-					if (IncludeSunShape && cur_stage_i == 0 && MultipleHitCount == 1)//change to account for first hit only in primary stage 8-11-31
-					{
-						// Apply sunshape to UNPERTURBED ray at intersection point
-						//only apply sunshape error once for primary stage
-						CopyVec3(ray.CosIn, ray.LastCosRaySurfElement);
-						Errors(myrng, ray.CosIn, 1, &System->Sun,
-							   Stage->ElementList[k], optics, ray.CosOut, ray.LastDFXYZ);  //sun shape
-						CopyVec3(ray.LastCosRaySurfElement, ray.CosOut);
-					}
-
-					//{Determine interaction at surface and direction of perturbed ray}
-					ray.ErrorFlag = 0;
-
-					Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
-						Stage->ElementList[k]->InteractionType, optics, 630.0,
-						ray.PosRayOutElement, ray.CosRayOutElement, &ray.ErrorFlag);
-
+					// Apply sunshape to UNPERTURBED ray at intersection point
+					//only apply sunshape error once for primary stage
+					CopyVec3(ray.CosIn, ray.LastCosRaySurfElement);
+					Errors(myrng, ray.CosIn, 1, &System->Sun,
+						   Stage->ElementList[k], optics, ray.CosOut, ray.LastDFXYZ);  //sun shape
+					CopyVec3(ray.LastCosRaySurfElement, ray.CosOut);
 				}
+
+				//{Determine interaction at surface and direction of perturbed ray}
+				ray.ErrorFlag = 0;
+
+				Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
+					Stage->ElementList[k]->InteractionType, optics, 630.0,
+					ray.PosRayOutElement, ray.CosRayOutElement, &ray.ErrorFlag);
+
 
 				// { Transform ray back to stage coord system and trace through stage again}
 				TransformToReference(ray.PosRayOutElement, ray.CosRayOutElement,
