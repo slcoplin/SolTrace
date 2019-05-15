@@ -131,8 +131,6 @@ struct Ray
     double CosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
     double DFXYZ[3] = { 0.0, 0.0, 0.0 };
     double LastDFXYZ[3] = { 0.0, 0.0, 0.0 };
-    double IncidentAngle = 0.0;
-    double UnitLastDFXYZ[3] = { 0.0, 0.0, 0.0 };
     int ErrorFlag = 0, InterceptFlag = 0, HitBackSide = 0, LastHitBackSide = 0;
     double PathLength = 0.0;
     double LastPathLength = 0.0;
@@ -580,85 +578,10 @@ bool Trace(TSystem *System, unsigned int seed,
 				optelm = Stage->ElementList[ p_ray->element - 1 ];
 				optics = 0;
 
-				// TODO: Function: TestValue = return_optics_test_value(ray, optelm, optics)
 				if (ray.LastHitBackSide)
 					optics = &optelm->Optics->Back;
 				else
 					optics = &optelm->Optics->Front;
-
-
-				double TestValue;
-				switch(optelm->InteractionType )
-				{
-					case 1: // refraction
-						TestValue = optics->Transmissivity;
-						break;
-					case 2: // reflection
-
-						if ( optics->UseReflectivityTable )
-						{
-							int npoints = optics->ReflectivityTable.size();
-							int m = 0;
-							for (int i = 0; i < 3; i++) {
-								ray.UnitLastDFXYZ[i] = -ray.LastDFXYZ[i]/sqrt(DOT(ray.LastDFXYZ, ray.LastDFXYZ));
-							}
-
-							ray.IncidentAngle = acos(DOT(ray.LastCosRaySurfElement, ray.UnitLastDFXYZ));
-							if (ray.IncidentAngle >= optics->ReflectivityTable[ npoints-1 ].angle )
-							{
-								TestValue = optics->ReflectivityTable[ npoints-1 ].refl;
-							}
-							else
-							{
-								while ( optics->ReflectivityTable[m].angle < ray.IncidentAngle )
-									m++;
-
-								if (m == 0)
-									TestValue = optics->ReflectivityTable[m].refl;
-								else
-									TestValue = (optics->ReflectivityTable[m].refl + optics->ReflectivityTable[m-1].refl)/2.0;
-							}
-						}
-						else
-							TestValue = optics->Reflectivity;
-						break;
-					default:
-						System->errlog("Bad optical interaction type = %d (stage %d)",cur_stage_i,optelm->InteractionType);
-						return false;
-				}
-
-				// Monte Carlo for absorption
-				// {Apply MonteCarlo probability of absorption. Limited for now, but can make more complex later on if desired}
-				if (TestValue <= myrng())
-				{
-					// ray was fully absorbed, so indicate by negating the element number
-					p_ray->element = 0 - p_ray->element;
-
-					if (RayNumber == LastRayNumberInPreviousStage)
-					{
-						PreviousStageHasRays = false;
-						if (PreviousStageDataArrayIndex > 0)
-						{
-							PreviousStageDataArrayIndex--;
-							PreviousStageHasRays = true;
-						}
-						goto Label_EndStageLoop;
-					}
-					else
-					{
-						// if all the rays have been traced, then go to next stage
-						// otherwise, increase RayNumber and generate a new sun ray
-						if (cur_stage_i == 0)
-						{
-							if (RayNumber == NumberOfRays)
-								goto Label_EndStageLoop;
-							else
-								RayNumber++;
-						}
-
-						continue;
-					}
-				}
 
                 // Does the interaction with the element collided with, and
                 // converts the ray into the global reference frame
