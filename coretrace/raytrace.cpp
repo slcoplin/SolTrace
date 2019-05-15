@@ -680,6 +680,8 @@ bool Trace(TSystem *System, unsigned int seed,
 				}
 
 				// TODO: Function: transform_to_global()
+                // Does the interaction with the element collided with, and
+                // converts the ray into the global reference frame
 				Label_TransformBackToGlobal:
 				k = abs( p_ray->element ) - 1;
 
@@ -699,26 +701,10 @@ bool Trace(TSystem *System, unsigned int seed,
 					//{Determine interaction at surface and direction of perturbed ray}
 					ray.ErrorFlag = 0;
 
-					// {Apply surface normal errors to surface normal before interaction ray at intersection point - Wendelin 11-23-09}
-					if( IncludeErrors )
-					{
-						CopyVec3( ray.CosIn, ray.CosRayOutElement );
-						SurfaceNormalErrors(myrng, ray.LastDFXYZ, optics, ray.CosOut);  //surface normal errors
-						CopyVec3( ray.LastDFXYZ, ray.CosOut );
-					}
-
 					Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
 						Stage->ElementList[k]->InteractionType, optics, 630.0,
 						ray.PosRayOutElement, ray.CosRayOutElement, &ray.ErrorFlag);
 
-					// {Apply specularity optical error to PERTURBED (i.e. after interaction) ray at intersection point}
-					if( IncludeErrors )
-					{
-						CopyVec3(ray.CosIn, ray.CosRayOutElement);
-						Errors(myrng, ray.CosIn, 2, &System->Sun,
-							   Stage->ElementList[k], optics, ray.CosOut, ray.LastDFXYZ);  //optical errors
-						CopyVec3(ray.CosRayOutElement, ray.CosOut);
-					}
 				}
 
 				// { Transform ray back to stage coord system and trace through stage again}
