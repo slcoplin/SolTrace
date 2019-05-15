@@ -189,7 +189,7 @@ void get_elements_in_stage(TStage *Stage,
 
 /*
  * Check the ray for intersections with all elements in element_list_ptr.
- * Modifies ray, LastElementNumber, LastRayNumber.
+ * Modifies ray, LastElementNumber.
  *
  * Inputs: Variables as defined in Trace.
  *
@@ -198,9 +198,7 @@ void check_intersection_in_stage(std::vector<TElement*> *element_list_ptr,
 		   	   	   	             st_uint_t nintelements,
 								 st_uint_t cur_stage_i,
 							     Ray &ray,
-								 st_uint_t &LastElementNumber,
-								 st_uint_t &LastRayNumber,
-								 st_uint_t RayNumber){
+								 st_uint_t &LastElementNumber){
 	for (st_uint_t j = 0; j < nintelements; j++)
 	{
 		TElement *Element;
@@ -249,9 +247,6 @@ void check_intersection_in_stage(std::vector<TElement*> *element_list_ptr,
 					CopyVec3(ray.LastCosRaySurfElement, ray.CosRaySurfElement);
 					CopyVec3(ray.LastDFXYZ, ray.DFXYZ);
 					LastElementNumber = j + 1;    //mjw change from j index to element id
-					// TODO: The lastRayNumber=RayNumber might be reduntant, and is the only place these variables
-					// are used in this fuction
-					LastRayNumber = RayNumber;
 					TransformToReference(ray.PosRaySurfElement, ray.CosRaySurfElement,
 						Element->Origin, Element->RLocToRef,
 						ray.PosRaySurfStage, ray.CosRaySurfStage);
@@ -341,7 +336,7 @@ bool Trace(TSystem *System, unsigned int seed,
            std::vector< std::vector< double > > *st1in,
            bool save_st_data) // FALSE, st0data and st1in are null.
 {
-    st_uint_t LastElementNumber = 0, LastRayNumber = 0;
+    st_uint_t LastElementNumber = 0;
     st_uint_t MultipleHitCount = 0;
 
 	ZeroVec(System->Sun.PosSunStage)
@@ -409,7 +404,6 @@ bool Trace(TSystem *System, unsigned int seed,
             Stage = System->StageList[cur_stage_i];
 
             LastElementNumber = 0;
-            LastRayNumber = 0;
             ray.LastHitBackSide = 0;
 
             StageDataArrayIndex = 0;
@@ -481,7 +475,7 @@ bool Trace(TSystem *System, unsigned int seed,
 				check_intersection_in_stage(element_list_ptr, nintelements,
 					cur_stage_i,
 					ray,
-					LastElementNumber, LastRayNumber, RayNumber);
+					LastElementNumber);
 
 
 			Label_StageHitLogic:
@@ -526,7 +520,6 @@ bool Trace(TSystem *System, unsigned int seed,
 							}
 						}
 						LastElementNumber = 0;
-						LastRayNumber = RayNumber;
 						CopyVec3(ray.LastPosRaySurfStage, ray.PosRayStage);
 						CopyVec3(ray.LastCosRaySurfStage, ray.CosRayStage);
 					}
@@ -538,7 +531,7 @@ bool Trace(TSystem *System, unsigned int seed,
 									  ray.LastCosRaySurfStage,
 									  LastElementNumber,
 									  cur_stage_i+1,
-									  LastRayNumber );
+									  RayNumber );
 				if (!p_ray)
 				{
 					System->errlog("Failed to save ray data at index %d", Stage->RayData.Count()-1);
