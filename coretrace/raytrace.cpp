@@ -352,7 +352,6 @@ bool Trace(TSystem *System, unsigned int seed,
     std::vector<GlobalRay> IncomingRays;
     st_uint_t StageDataArrayIndex=0;
     bool PreviousStageHasRays = false;
-    st_uint_t PreviousStageDataArrayIndex = 0;
     st_uint_t LastRayNumberInPreviousStage = NumberOfRays;
 
     //bool aspowertower_ok = false;
@@ -414,7 +413,6 @@ bool Trace(TSystem *System, unsigned int seed,
             ray.LastHitBackSide = 0;
 
             StageDataArrayIndex = 0;
-            PreviousStageDataArrayIndex = 0;
 
 
 			// PB: good place for adding loop. IncomingRays already has a vector of size NumberOfRays
@@ -487,6 +485,7 @@ bool Trace(TSystem *System, unsigned int seed,
 
 
 			Label_StageHitLogic:
+                // If the ray doesn't hit anything, handle that case
 				if (!ray.StageHit)
 				{
 					if (cur_stage_i == 0) // first stage only
