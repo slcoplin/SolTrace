@@ -499,11 +499,8 @@ bool Trace(TSystem *System, unsigned int seed,
 							// TODO: change to end_stage()
 							goto Label_EndStageLoop;
 
-						// PreviousStageDataArrayIndex++;
-						PreviousStageHasRays = true;
-
-						// continue ray loop
-
+						// trace next ray
+                        PreviousStageHasRays = true;
 						RayNumber++;
 						continue;
 					}
@@ -569,7 +566,7 @@ bool Trace(TSystem *System, unsigned int seed,
 						// if this the first stage
 						// generate new sun ray but pass the current one to the next stage
 						// otherwise, go to the next stage directly
-						// sine RayNumber in stage i > 0 is read from IncomingRays[]
+						// since RayNumber in stage i > 0 is read from IncomingRays[]
 						if (cur_stage_i == 0)
 						{
 							RayNumber++;
