@@ -356,7 +356,6 @@ bool Trace(TSystem *System, unsigned int seed,
     st_uint_t LastRayNumberInPreviousStage = NumberOfRays;
 
     //bool aspowertower_ok = false;
-    bool in_multi_hit_loop = false;
 
     try
     {
@@ -397,7 +396,7 @@ bool Trace(TSystem *System, unsigned int seed,
 
         fout.close();
 #endif
-        
+
         for (st_uint_t cur_stage_i=0;cur_stage_i<System->StageList.size();cur_stage_i++)
         {
 
@@ -469,9 +468,6 @@ bool Trace(TSystem *System, unsigned int seed,
 
 				// Start ray tracing
 
-				in_multi_hit_loop = false;
-
-			Label_MultiHitLoop:
 				// Getting list of elements to check for intersection
 
 				ray.LastPathLength = 1e99;
@@ -547,7 +543,6 @@ bool Trace(TSystem *System, unsigned int seed,
 									  LastElementNumber,
 									  cur_stage_i+1,
 									  LastRayNumber );
-
 				if (!p_ray)
 				{
 					System->errlog("Failed to save ray data at index %d", Stage->RayData.Count()-1);
@@ -734,18 +729,11 @@ bool Trace(TSystem *System, unsigned int seed,
 						Stage->Origin, Stage->RLocToRef,
 						ray.PosRayGlob, ray.CosRayGlob);
 
-				// Check if allow multiple stage hits
-				// TODO: switch gotos to while true
-				if (!Stage->MultiHitsPerRay)
-				{
-					ray.StageHit = false;
-					goto Label_StageHitLogic;
-				}
-				else
-				{
-					in_multi_hit_loop = true;
-					goto Label_MultiHitLoop;
-				}
+				// Used to check if allow multiple stage hits, now only one stage hit allowed
+				ray.StageHit = false;
+                // Deal with the next
+				goto Label_StageHitLogic;
+
 // TODO: Change Label_EndStageLoop to end_stage()
 Label_EndStageLoop:
 				bool no_error;
