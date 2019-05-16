@@ -353,9 +353,6 @@ bool Trace(TSystem *System, unsigned int seed,
 			// loop through rays within each stage
 			for (int PreviousStageDataArrayIndex = 0; PreviousStageDataArrayIndex < NumberOfRays; PreviousStageDataArrayIndex++) {
 
-				st_uint_t MultipleHitCount = 0;
-
-
 				// Load the ray and trace it.
 				// First stage. Generate a ray.
 				if (cur_stage_i == 0)
@@ -413,97 +410,82 @@ bool Trace(TSystem *System, unsigned int seed,
 					ray,
 					LastElementNumber);
 
-
-			Label_StageHitLogic:
-                // If the ray doesn't hit anything, handle that case
-				if (!ray.StageHit)
+                // If the ray hits something, handle that case
+				if (ray.StageHit)
 				{
-                    // This might be wrong in the stage 0 case, because of the way we no longer
-                    // regenerate rays if they don't hit something in stage 0
-                    if (MultipleHitCount == 0) {
-                        CopyVec3(ray.LastPosRaySurfStage, ray.PosRayStage);
-						CopyVec3(ray.LastCosRaySurfStage, ray.CosRayStage);
-                    }
+    				// now all the rays have been traced
+    				// time for optics
 
-                    // append ray data
-                    // Records the point of collision
-                    // If we allow multiple collisions, I'm not sure what will happen
-                    TRayData::ray_t *p_ray = 0;
-    				p_ray = Stage->RayData.Append( ray.LastPosRaySurfStage,
-    									  ray.LastCosRaySurfStage,
-    									  LastElementNumber,
-    									  cur_stage_i+1,
-    									  PreviousStageDataArrayIndex );
-    				if (!p_ray)
+    				// {Otherwise trace ray through interaction}
+    				// {Determine if backside or frontside properties should be used}
+
+    				// trace through the interaction
+    				optelm = Stage->ElementList[ LastElementNumber - 1 ];
+    				optics = 0;
+
+    				if (ray.LastHitBackSide)
+    					optics = &optelm->Optics->Back;
+    				else
+    					optics = &optelm->Optics->Front;
+
+                    // Does the interaction with the element collided with, and
+                    // converts the ray into the global reference frame
+
+    				k = abs( LastElementNumber ) - 1;
+
+    				// Do the ray interaction (reflect, etc)
+    				if (IncludeSunShape && cur_stage_i == 0)
     				{
-    					System->errlog("Failed to save ray data at index %d", Stage->RayData.Count()-1);
-    					return false;
+                        // change to account for first hit only in primary stage 8-11-31. (Only does first hit, not future ones)
+    					// Apply sunshape to UNPERTURBED ray at intersection point
+    					//only apply sunshape error once for primary stage
+    					CopyVec3(ray.CosIn, ray.LastCosRaySurfElement);
+    					Errors(myrng, ray.CosIn, 1, &System->Sun,
+    						   Stage->ElementList[k], optics, ray.CosOut, ray.LastDFXYZ);  //sun shape
+    					CopyVec3(ray.LastCosRaySurfElement, ray.CosOut);
     				}
 
-					// Save ray data
-					CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Pos, ray.PosRayGlob);
-					CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Cos, ray.CosRayGlob);
-					IncomingRays[PreviousStageDataArrayIndex].Num = PreviousStageDataArrayIndex + 1;
+    				//{Determine interaction at surface and direction of perturbed ray}
+    				ray.ErrorFlag = 0;
 
-					// trace next ray
-					continue;
+    				Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
+    					Stage->ElementList[k]->InteractionType, optics, 630.0,
+    					ray.PosRayOutElement, ray.CosRayOutElement, &ray.ErrorFlag);
 
-				}
+    				// { Transform ray back to stage coord system and trace through stage again}
+    				TransformToReference(ray.PosRayOutElement, ray.CosRayOutElement,
+    						Stage->ElementList[k]->Origin, Stage->ElementList[k]->RLocToRef,
+    						ray.PosRayStage, ray.CosRayStage);
+    				TransformToReference(ray.PosRayStage, ray.CosRayStage,
+    						Stage->Origin, Stage->RLocToRef,
+    						ray.PosRayGlob, ray.CosRayGlob);
+                }
+                else { // No collision happened
+                    // This might be wrong in the stage 0 case, because of the way we no longer
+                    // regenerate rays if they don't hit something in stage 0
+                    CopyVec3(ray.LastPosRaySurfStage, ray.PosRayStage);
+                    CopyVec3(ray.LastCosRaySurfStage, ray.CosRayStage);
+                }
 
-				MultipleHitCount++;
+                // append ray data
+                // Records the point of collision
+                // If we allow multiple collisions, I'm not sure what will happen
+                TRayData::ray_t *p_ray = 0;
+                p_ray = Stage->RayData.Append( ray.LastPosRaySurfStage,
+                                      ray.LastCosRaySurfStage,
+                                      LastElementNumber,
+                                      cur_stage_i+1,
+                                      PreviousStageDataArrayIndex );
+                if (!p_ray)
+                {
+                    System->errlog("Failed to save ray data at index %d", Stage->RayData.Count()-1);
+                    return false;
+                }
 
-				// now all the rays have been traced
-				// time for optics
-
-				// {Otherwise trace ray through interaction}
-				// {Determine if backside or frontside properties should be used}
-
-				// trace through the interaction
-				optelm = Stage->ElementList[ LastElementNumber - 1 ];
-				optics = 0;
-
-				if (ray.LastHitBackSide)
-					optics = &optelm->Optics->Back;
-				else
-					optics = &optelm->Optics->Front;
-
-                // Does the interaction with the element collided with, and
-                // converts the ray into the global reference frame
-
-				k = abs( LastElementNumber ) - 1;
-
-				// Do the ray interaction (reflect, etc)
-				if (IncludeSunShape && cur_stage_i == 0 && MultipleHitCount == 1)//change to account for first hit only in primary stage 8-11-31
-				{
-					// Apply sunshape to UNPERTURBED ray at intersection point
-					//only apply sunshape error once for primary stage
-					CopyVec3(ray.CosIn, ray.LastCosRaySurfElement);
-					Errors(myrng, ray.CosIn, 1, &System->Sun,
-						   Stage->ElementList[k], optics, ray.CosOut, ray.LastDFXYZ);  //sun shape
-					CopyVec3(ray.LastCosRaySurfElement, ray.CosOut);
-				}
-
-				//{Determine interaction at surface and direction of perturbed ray}
-				ray.ErrorFlag = 0;
-
-				Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
-					Stage->ElementList[k]->InteractionType, optics, 630.0,
-					ray.PosRayOutElement, ray.CosRayOutElement, &ray.ErrorFlag);
-
-
-				// { Transform ray back to stage coord system and trace through stage again}
-				TransformToReference(ray.PosRayOutElement, ray.CosRayOutElement,
-						Stage->ElementList[k]->Origin, Stage->ElementList[k]->RLocToRef,
-						ray.PosRayStage, ray.CosRayStage);
-				TransformToReference(ray.PosRayStage, ray.CosRayStage,
-						Stage->Origin, Stage->RLocToRef,
-						ray.PosRayGlob, ray.CosRayGlob);
-
-				// Used to check if allow multiple stage hits, now only one stage hit allowed
-				ray.StageHit = false;
-                // Trace through the stage again
-				goto Label_StageHitLogic;
-
+                // Save ray data
+                CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Pos, ray.PosRayGlob);
+                CopyVec3(IncomingRays[PreviousStageDataArrayIndex].Cos, ray.CosRayGlob);
+                IncomingRays[PreviousStageDataArrayIndex].Num = PreviousStageDataArrayIndex + 1;
 			}
 
         }
