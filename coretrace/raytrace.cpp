@@ -142,6 +142,24 @@ static bool eprojdat_compare(const eprojdat &A, const eprojdat &B)
     return A.d_proj > B.d_proj;
 };
 
+/**
+ * Generate rays for a given system
+ * @param System       A System. Stage 0 has sun. Defines Sun.
+ * @param IncomingRays An allocated array of rays (in global position).
+ *                     Modified to contain generated rays.
+ * @param NumberOfRays Number of rays to generate.
+ *                     IncomingRays must have space for NumberOfRays
+ */
+void generate_rays(TSystem *System, GlobalRay *IncomingRays, st_uint_t NumberOfRays){
+    for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
+        double PosRaySun[3]; // Unused. Was for sun hash
+        GenerateRay(myrng, System->Sun.PosSunStage, System->StageList[0]->Origin,
+            System->StageList[0]->RLocToRef, &System->Sun,
+            IncomingRays[RayIndex]->Pos, IncomingRays[RayIndex]->Cos, PosRaySun);
+        System->SunRayCount++;
+    }
+}
+
 /*
  * Finds the elements (and # of elements) corresponding to the current stage
  * that the ray might hit.
@@ -172,7 +190,6 @@ void get_elements_in_stage(TStage *Stage,
  */
 void check_intersection_in_stage(std::vector<TElement*> *element_list_ptr,
 		   	   	   	             st_uint_t nintelements,
-								 st_uint_t cur_stage_i,
 							     Ray &ray){
     ray.StageHit = false;
 	for (st_uint_t j = 0; j < nintelements; j++)
@@ -274,10 +291,6 @@ bool Trace(TSystem *System, unsigned int seed,
 {
 	ZeroVec(System->Sun.PosSunStage)
 
-    // Rays that get passed stage to stage
-    GlobalRay *IncomingRays = malloc(NumberOfRays * sizeof(GlobalRay));
-    assert(IncomingRays);
-
     //bool aspowertower_ok = false;
 
     try
@@ -309,6 +322,11 @@ bool Trace(TSystem *System, unsigned int seed,
         fout.close();
 #endif
 
+        // Rays that get passed stage to stage
+        GlobalRay *IncomingRays = malloc(NumberOfRays * sizeof(GlobalRay));
+        assert(IncomingRays);
+
+        generate_rays(System, IncomingRays, NumberOfRays);
 
 
         for (st_uint_t cur_stage_i=0;cur_stage_i<System->StageList.size();cur_stage_i++)
@@ -322,36 +340,10 @@ bool Trace(TSystem *System, unsigned int seed,
                 // Initialize ray variables
                 Ray ray;
 
-				// Load the ray and trace it.
-				// First stage. Generate a ray.
-				if (cur_stage_i == 0)
-				{
-
-					// we are in the first stage, so
-					// generate a new sun ray in global coords
-                    double PosRaySun[3]; // Unused. Was for sun hash
-					GenerateRay(myrng, System->Sun.PosSunStage, Stage->Origin,
-						Stage->RLocToRef, &System->Sun,
-						ray.PosRayGlob, ray.CosRayGlob, PosRaySun);
-					System->SunRayCount++;
-
-
-					if (System->SunRayCount > MaxNumberOfRays)
-					{
-						System->errlog("generated sun rays reached maximum count: %d", MaxNumberOfRays);
-						return false;
-					}
-
-				}
+				// Load the ray
 				// TODO: Add handler for i > 0 stage : DONE
-				// Other stages. Load the ray from the previous stage.
-				else
-				{
-					// we are in a subsequent stage, so trace using an incoming ray
-					// saved from the previous stages
-					CopyVec3( ray.PosRayGlob, IncomingRays[RayIndex].Pos );
-					CopyVec3( ray.CosRayGlob, IncomingRays[RayIndex].Cos );
-				}
+			    CopyVec3( ray.PosRayGlob, IncomingRays[RayIndex].Pos );
+				CopyVec3( ray.CosRayGlob, IncomingRays[RayIndex].Cos );
 
 				// transform the global incoming ray to local stage coordinates
 				TransformToLocal(ray.PosRayGlob, ray.CosRayGlob,
@@ -371,9 +363,7 @@ bool Trace(TSystem *System, unsigned int seed,
 
 
 				// Check for ray intersections
-				check_intersection_in_stage(element_list_ptr, nintelements,
-					cur_stage_i,
-					ray);
+				check_intersection_in_stage(element_list_ptr, nintelements, ray);
 
                 // If the ray hits something, handle it
 				if (ray.StageHit)
