@@ -274,10 +274,9 @@ bool Trace(TSystem *System, unsigned int seed,
 {
 	ZeroVec(System->Sun.PosSunStage)
 
-    // Initialize ray variables
-    Ray ray;
-
-    std::vector<GlobalRay> IncomingRays;
+    // Rays that get passed stage to stage
+    GlobalRay *IncomingRays = malloc(NumberOfRays * sizeof(GlobalRay));
+    assert(IncomingRays);
 
     //bool aspowertower_ok = false;
 
@@ -295,15 +294,6 @@ bool Trace(TSystem *System, unsigned int seed,
 
         assert(check_input(NumberOfRays, System));
 
-        try
-        {
-            IncomingRays.resize( NumberOfRays );
-        } catch (std::exception &e) {
-            System->errlog("Incoming rays resize exception: %d, '%s'", NumberOfRays, e.what());
-            return false;
-        }
-
-
         if (!SunToPrimaryStage(System, System->StageList[0], &System->Sun, System->Sun.PosSunStage)){
             return false;
         }
@@ -319,6 +309,8 @@ bool Trace(TSystem *System, unsigned int seed,
         fout.close();
 #endif
 
+
+
         for (st_uint_t cur_stage_i=0;cur_stage_i<System->StageList.size();cur_stage_i++)
         {
 
@@ -326,6 +318,9 @@ bool Trace(TSystem *System, unsigned int seed,
 
 			// loop through rays within each stage
 			for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
+
+                // Initialize ray variables
+                Ray ray;
 
 				// Load the ray and trace it.
 				// First stage. Generate a ray.
