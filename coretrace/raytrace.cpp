@@ -363,7 +363,7 @@ bool Trace(TSystem *System, unsigned int seed,
                     // Does the interaction with the element collided with, and
                     // converts the ray into the global reference frame
 
-    				k = abs( ray.LastElementNumber ) - 1;
+    				k = ray.LastElementNumber - 1;
 
     				// Do the ray interaction (reflect, etc)
     				if (IncludeSunShape && cur_stage_i == 0)
