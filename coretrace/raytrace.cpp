@@ -150,41 +150,20 @@ void generate_rays(TSystem *System, GlobalRay *IncomingRays, st_uint_t NumberOfR
 }
 
 /*
- * Finds the elements (and # of elements) corresponding to the current stage
- * that the ray might hit.
- *
- * Inputs: Variables as defined in Trace.
- *
- * Modified inputs: Output: nintelements and element_list_ptr
- *
- */
-void get_elements_in_stage(TStage *Stage,
-						   std::vector<TElement*> *&element_list_ptr,
-						   st_uint_t &nintelements
-						   ){
-	// Check all elements
-	nintelements = Stage->ElementList.size();
-
-	// Set element_list to Stage->ElementList
-	element_list_ptr = &((std::vector<TElement*>) Stage->ElementList);
-}
-
-
-/*
- * Check the ray for intersections with all elements in element_list_ptr.
+ * Check the ray for intersections with all elements in element_list.
  * Modifies ray.
  *
  * Inputs: Variables as defined in Trace.
  *
  */
-void check_intersection_in_stage(std::vector<TElement*> *element_list_ptr,
+void check_intersection_in_stage(std::vector<TElement*> &element_list,
 		   	   	   	             st_uint_t nintelements,
 							     Ray &ray){
     ray.StageHit = false;
 	for (st_uint_t j = 0; j < nintelements; j++)
 	{
 		TElement *Element;
-		Element = (*element_list_ptr)[j];
+		Element = element_list[j];
 
 		if (!Element->Enabled)
 			continue;
@@ -335,13 +314,11 @@ bool Trace(TSystem *System, unsigned int seed,
 
 
 				// Find number of elements to check intersections with, and set element_list
-				st_uint_t nintelements;
-                std::vector<TElement*> *element_list_ptr;
-				get_elements_in_stage(Stage, element_list_ptr, nintelements);
-
+				st_uint_t nintelements = Stage->ElementList.size();
+                std::vector<TElement*> element_list = Stage->ElementList;
 
 				// Check for ray intersections
-				check_intersection_in_stage(element_list_ptr, nintelements, ray);
+				check_intersection_in_stage(element_list, nintelements, ray);
 
                 // If the ray hits something, handle it
 				if (ray.StageHit)
