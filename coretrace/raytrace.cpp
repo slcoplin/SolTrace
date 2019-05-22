@@ -70,7 +70,6 @@
 void time(const char *message, ofstream *fout)
 {
     (*fout) << message << chrono::duration_cast< chrono::milliseconds >( chrono::system_clock::now().time_since_epoch() ).count() << "\n";
-
 }
 
 inline void CopyVec3( double dest[3], const std::vector<double> &src )
@@ -150,12 +149,12 @@ static bool eprojdat_compare(const eprojdat &A, const eprojdat &B)
  * @param NumberOfRays Number of rays to generate.
  *                     IncomingRays must have space for NumberOfRays
  */
-void generate_rays(TSystem *System, GlobalRay *IncomingRays, st_uint_t NumberOfRays){
+void generate_rays(TSystem *System, GlobalRay *IncomingRays, st_uint_t NumberOfRays, MTRand &myrng){
     for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
         double PosRaySun[3]; // Unused. Was for sun hash
         GenerateRay(myrng, System->Sun.PosSunStage, System->StageList[0]->Origin,
             System->StageList[0]->RLocToRef, &System->Sun,
-            IncomingRays[RayIndex]->Pos, IncomingRays[RayIndex]->Cos, PosRaySun);
+            IncomingRays[RayIndex].Pos, IncomingRays[RayIndex].Cos, PosRaySun);
         System->SunRayCount++;
     }
 }
@@ -236,7 +235,7 @@ void check_intersection_in_stage(std::vector<TElement*> *element_list_ptr,
 			//if (PathLength < LastPathLength) and (PosRaySurfElement[2] <= Element->ZAperture) then
 			if (PathLength < LastPathLength)
 			{
-				if (ray.PosRaySurfElement[2] <= Element->ZAperture
+				if (PosRaySurfElement[2] <= Element->ZAperture
 					|| Element->SurfaceIndex == 'm'
 					|| Element->SurfaceIndex == 'M'
 					|| Element->SurfaceIndex == 'r'
@@ -289,7 +288,7 @@ bool Trace(TSystem *System, unsigned int seed,
            std::vector< std::vector< double > > *st1in,
            bool save_st_data) // FALSE, st0data and st1in are null.
 {
-	ZeroVec(System->Sun.PosSunStage)
+	ZeroVec(System->Sun.PosSunStage);
 
     //bool aspowertower_ok = false;
 
@@ -323,10 +322,10 @@ bool Trace(TSystem *System, unsigned int seed,
 #endif
 
         // Rays that get passed stage to stage
-        GlobalRay *IncomingRays = malloc(NumberOfRays * sizeof(GlobalRay));
+        GlobalRay *IncomingRays = (GlobalRay *) malloc(NumberOfRays * sizeof(GlobalRay));
         assert(IncomingRays);
 
-        generate_rays(System, IncomingRays, NumberOfRays);
+        generate_rays(System, IncomingRays, NumberOfRays, myrng);
 
 
         for (st_uint_t cur_stage_i=0;cur_stage_i<System->StageList.size();cur_stage_i++)
@@ -404,7 +403,7 @@ bool Trace(TSystem *System, unsigned int seed,
     				}
 
     				//{Determine interaction at surface and direction of perturbed ray}
-    				int ErrorFlag = 0
+					int ErrorFlag = 0;
                     double PosRayOutElement[3] = { 0.0, 0.0, 0.0 };
                     double CosRayOutElement[3] = { 0.0, 0.0, 0.0 };
     				Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
