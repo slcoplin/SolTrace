@@ -57,20 +57,10 @@
 #include <cmath>
 #include <algorithm>
 #include <ctime>
-//#define WITH_DEBUG_TIMER
-#ifdef WITH_DEBUG_TIMER
-    #include <chrono>    //comment out for production
-#endif
 
 #include "types.h"
 #include "procs.h"
 #include "treemesh.h"
-
-
-void time(const char *message, ofstream *fout)
-{
-    (*fout) << message << chrono::duration_cast< chrono::milliseconds >( chrono::system_clock::now().time_since_epoch() ).count() << "\n";
-}
 
 inline void CopyVec3( double dest[3], const std::vector<double> &src )
 {
@@ -309,17 +299,6 @@ bool Trace(TSystem *System, unsigned int seed,
         if (!SunToPrimaryStage(System, System->StageList[0], &System->Sun, System->Sun.PosSunStage)){
             return false;
         }
-
-#ifdef WITH_DEBUG_TIMER
-        ofstream fout("C:\\Users\\mwagner\\Documents\\NREL\\Dev\\SolTraceWX\\log.txt");
-        fout.clear();
-#else
-        ofstream fout;
-
-        time("Starting stage calculations:\t", &fout);
-
-        fout.close();
-#endif
 
         // Rays that get passed stage to stage
         GlobalRay *IncomingRays = (GlobalRay *) malloc(NumberOfRays * sizeof(GlobalRay));
