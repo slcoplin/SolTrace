@@ -183,7 +183,7 @@ int main(int argc, char **argv)
             return 0;
         }
     }
-
+    /* s should be for seed. Idk what summary file is. It doesn't seem to be used for anything
     if( parser.Found("s", &fnsum) )
     {
         //check that file exists
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
             wxPrintf( "\nSummary file path not found!" );
             return 0;
         }
-    }
+    }*/
 
     if ( argc == 1 )
     {
