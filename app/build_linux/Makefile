@@ -1,5 +1,5 @@
 all:
-    make -f Makefile-ui -j4
+	make -f Makefile-ui -j4
 
 clean:
-    clean -f Makefile-ui
+	clean -f Makefile-ui
