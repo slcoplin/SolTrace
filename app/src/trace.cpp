@@ -725,8 +725,8 @@ int RunTraceMultiThreaded( Project *System, int nrays, int nmaxrays,
             {
                 cmd_threadstate += wxString::Format("%5.1f", 100.0f*((float)ntraced)/((float)std::max(1,(int)ntotrace)) );
 
-                if( i==ThreadList.size()-1 )
-                    wxPrintf( "\nStage %d of %d: %s", (int)stagenum, (int)nstages, cmd_threadstate.c_str() );
+                //if( i==ThreadList.size()-1 ) Unneeded
+					//wxPrintf("\nStage %d of %d: %s", (int)stagenum, (int)nstages, cmd_threadstate.c_str());
             }
             else
             {
