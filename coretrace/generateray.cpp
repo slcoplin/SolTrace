@@ -98,39 +98,24 @@ void GenerateRay(
 
   //{Generate random rays inside of region of interest or from point source}
     
-        if (Sun->PointSource) //fixed this on 3-18-13
+    if (Sun->PointSource) //fixed this on 3-18-13
     {
         PosRayGlobal[0] = Sun->Origin[0];
         PosRayGlobal[1] = Sun->Origin[1];
         PosRayGlobal[2] = Sun->Origin[2];
         
-        if (RANGEN() <= 0.5)
-            NegPosSign = -1;
-        else
-            NegPosSign = 1;
-            
-        CosRayGlobal[0] = NegPosSign*RANGEN();     //random direction for x part of ray vector
+        CosRayGlobal[0] = RANGEN() - 0.5;     //random direction for x part of ray vector
+
+        CosRayGlobal[1] = RANGEN() - 0.5;    //random direction for y part of ray vector
         
-        if (RANGEN() <= 0.5)
-            NegPosSign = -1;
-        else
-            NegPosSign = 1;
-            
-        CosRayGlobal[1] = NegPosSign*RANGEN();    //random direction for y part of ray vector
-        
-                if (RANGEN() <= 0.5)
-                        NegPosSign = -1;
-                else
-                        NegPosSign = 1;
+        CosRayGlobal[2] = RANGEN() - 0.5;   //random direction for z part of ray vector
 
-                CosRayGlobal[2] = NegPosSign*RANGEN();   //random direction for z part of ray vector
+        double CosRayGMag = sqrt(CosRayGlobal[0]*CosRayGlobal[0]+CosRayGlobal[1]*CosRayGlobal[1]+CosRayGlobal[2]*CosRayGlobal[2]);
 
-                double CosRayGMag = sqrt(CosRayGlobal[0]*CosRayGlobal[0]+CosRayGlobal[1]*CosRayGlobal[1]+CosRayGlobal[2]*CosRayGlobal[2]);
-
-                CosRayGlobal[0] = CosRayGlobal[0]/CosRayGMag;  // obtain unit vector by dividing by magnitude
-                CosRayGlobal[1] = CosRayGlobal[1]/CosRayGMag;
-                CosRayGlobal[2] = CosRayGlobal[2]/CosRayGMag;
-        }
+        CosRayGlobal[0] = CosRayGlobal[0]/CosRayGMag;  // obtain unit vector by dividing by magnitude
+        CosRayGlobal[1] = CosRayGlobal[1]/CosRayGMag;
+        CosRayGlobal[2] = CosRayGlobal[2]/CosRayGMag;
+    }
     else
     {
         //following changed on 09/26/05 to more efficiently generate rays relative to element center of mass in primary stage
