@@ -96,53 +96,32 @@ void GenerateRay(
                             // to the closer form solution for a cylinder.  It used to 1e6 and has been reduced to 1e4, which should still be sufficient.   10-26-09 Wendelin
 
 
-  //{Generate random rays inside of region of interest or from point source}
-    
-    if (Sun->PointSource) //fixed this on 3-18-13
-    {
-        PosRayGlobal[0] = Sun->Origin[0];
-        PosRayGlobal[1] = Sun->Origin[1];
-        PosRayGlobal[2] = Sun->Origin[2];
-        
-        CosRayGlobal[0] = RANGEN() - 0.5;     //random direction for x part of ray vector
+  //{Generate random rays inside of region of interest}
 
-        CosRayGlobal[1] = RANGEN() - 0.5;    //random direction for y part of ray vector
-        
-        CosRayGlobal[2] = RANGEN() - 0.5;   //random direction for z part of ray vector
+    //following changed on 09/26/05 to more efficiently generate rays relative to element center of mass in primary stage
+    /*{XRaySun := 2.0*MaxRad*ran3(Seed) - MaxRad;  //ran3 produces results independent of platform.
+    YRaySun := 2.0*MaxRad*ran3(Seed) - MaxRad;
+    if (XRaySun*XRaySun + YRaySun*YRaySun) > MaxRad*MaxRad then goto GENRAY;
+    XRaySun := Xcm + XRaySun;  //adjust location of generated rays about element center of mass
+    YRaySun := Ycm + YRaySun;}*/
 
-        double CosRayGMag = sqrt(CosRayGlobal[0]*CosRayGlobal[0]+CosRayGlobal[1]*CosRayGlobal[1]+CosRayGlobal[2]*CosRayGlobal[2]);
-
-        CosRayGlobal[0] = CosRayGlobal[0]/CosRayGMag;  // obtain unit vector by dividing by magnitude
-        CosRayGlobal[1] = CosRayGlobal[1]/CosRayGMag;
-        CosRayGlobal[2] = CosRayGlobal[2]/CosRayGMag;
-    }
-    else
-    {
-        //following changed on 09/26/05 to more efficiently generate rays relative to element center of mass in primary stage
-        /*{XRaySun := 2.0*MaxRad*ran3(Seed) - MaxRad;  //ran3 produces results independent of platform.
-        YRaySun := 2.0*MaxRad*ran3(Seed) - MaxRad;
-        if (XRaySun*XRaySun + YRaySun*YRaySun) > MaxRad*MaxRad then goto GENRAY;
-        XRaySun := Xcm + XRaySun;  //adjust location of generated rays about element center of mass
-        YRaySun := Ycm + YRaySun;}*/
-
-        XRaySun = Sun->MinXSun + (Sun->MaxXSun - Sun->MinXSun)*RANGEN();     //uses a rectangular region of interest about the primary
-        YRaySun = Sun->MinYSun + (Sun->MaxYSun - Sun->MinYSun)*RANGEN();     //stage. Added 09/26/05
+    XRaySun = Sun->MinXSun + (Sun->MaxXSun - Sun->MinXSun)*RANGEN();     //uses a rectangular region of interest about the primary
+    YRaySun = Sun->MinYSun + (Sun->MaxYSun - Sun->MinYSun)*RANGEN();     //stage. Added 09/26/05
         
         
-        //{Offload ray location and direction cosines into sun array}
-        PosRaySun[0] = XRaySun;
-        PosRaySun[1] = YRaySun;
-        PosRaySun[2] = ZRaySun;
-        CosRaySun[0] = 0.0;
-        CosRaySun[1] = 0.0;
-        CosRaySun[2] = 1.0;
+    //{Offload ray location and direction cosines into sun array}
+    PosRaySun[0] = XRaySun;
+    PosRaySun[1] = YRaySun;
+    PosRaySun[2] = ZRaySun;
+    CosRaySun[0] = 0.0;
+    CosRaySun[1] = 0.0;
+    CosRaySun[2] = 1.0;
 
-        //{Transform ray locations and dir cosines into Stage system}
-        TransformToReference(PosRaySun, CosRaySun, PosSunStage, Sun->RLocToRef, PosRayStage, CosRayStage);
+    //{Transform ray locations and dir cosines into Stage system}
+    TransformToReference(PosRaySun, CosRaySun, PosSunStage, Sun->RLocToRef, PosRayStage, CosRayStage);
         
-        //{Transform ray locations and dir cosines into global system}
-        TransformToReference(PosRayStage, CosRayStage, Origin, RLocToRef, PosRayGlobal, CosRayGlobal);
-    }
+    //{Transform ray locations and dir cosines into global system}
+    TransformToReference(PosRayStage, CosRayStage, Origin, RLocToRef, PosRayGlobal, CosRayGlobal);
 }
 //End of Procedure--------------------------------------------------------------
 
