@@ -1,6 +1,7 @@
 VPATH = ../src/
 
-
+LKDIR=/home/scoplin/project/st_dev/lk
+WEXDIR=/home/scoplin/project/st_dev/wex
 WEXLIB = $(WEXDIR)/wexuxwx3.a
 LKLIB = $(LKDIR)/lkuxwx3.a
 CORETRACEDIR = ../../coretrace
