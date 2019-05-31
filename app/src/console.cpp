@@ -307,7 +307,7 @@ int main(int argc, char **argv)
         double minx,miny,maxx,maxy;
         if(! es.Compute(st, el, nbinx, nbiny, true, final, dni, minx, miny, maxx, maxy) )
         {
-            wxPrintf("\nError in flux map plot parameters for st/el %s", pdat.c_str());
+            wxPrintf("\nError in flux map plot parameters for st/el %s (For CS179 applications this seems fine) \n", pdat.c_str());
             continue;
         }
 
