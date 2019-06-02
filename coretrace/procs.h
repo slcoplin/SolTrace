@@ -27,9 +27,9 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the 
-*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to 
-*  any modified version of this software or any modified version of the underlying software originally 
+*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the
+*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to
+*  any modified version of this software or any modified version of the underlying software originally
 *  provided by Alliance without the prior written consent of Alliance.
 *
 *  5. The name of the copyright holder, contributors, the United States Government, the United States
@@ -60,16 +60,16 @@
 #include "mtrand.h"
 #include "stapi.h"
 
-void Intersect( 
-            double PosLoc[3], 
+void Intersect(
+            double PosLoc[3],
             double CosLoc[3],
             TElement *Element,
-            double PosXYZ[3], 
+            double PosXYZ[3],
             double CosKLM[3],
             double DFXYZ[3],
             double *PathLength,
             int *ErrorFlag );
-            
+
 void Surface(
             double PosXYZ[3],
             TElement *Element,
@@ -127,27 +127,12 @@ void GenerateRay(
             double PosRaySun[3]
             );
 
-bool LoadExistingStage0Ray(
-            int index,
-            std::vector<std::vector< double> > *raydat,
-            double PosRayGlobal[3],
-            double CosRayGlobal[3],
-            st_uint_t &ElementNum,
-            st_uint_t &RayNum );
-
-bool LoadExistingStage1Ray(
-            int index,
-            std::vector<std::vector< double> > *raydat,
-            double PosRayGlobal[3],
-            double CosRayGlobal[3],
-            int &raynum);
-
 bool SunToPrimaryStage(
                 TSystem *System,
                 TStage *Stage,
                 TSun *Sun,
                 double PosSunStage[3]);
-                
+
 bool AperturePlane(
             TElement *Element);
 
@@ -192,7 +177,7 @@ void SurfaceZatXYPair(
             TElement *Element,
             double *FXYZ,
             int *ErrorFlag );
-            
+
 
 
 
@@ -201,12 +186,12 @@ void MatrixTranspose(double InputMatrix[3][3], int NumRowsCols, double OutputMat
 
 double DOT(double A[3], double B[3]);
 
-void TransformToLocal(double PosRef[3], double CosRef[3], double Origin[3], 
-        double RRefToLoc[3][3], 
+void TransformToLocal(double PosRef[3], double CosRef[3], double Origin[3],
+        double RRefToLoc[3][3],
         double PosLoc[3], double CosLoc[3]);
 
-void TransformToReference(double PosLoc[3], double CosLoc[3], double Origin[3], 
-        double RLocToRef[3][3], 
+void TransformToReference(double PosLoc[3], double CosLoc[3], double Origin[3],
+        double RLocToRef[3][3],
         double PosRef[3], double CosRef[3]);
 
 void CalculateTransformMatrices(double Euler[3], double RRefToLoc[3][3], double RLocToRef[3][3]);
@@ -222,21 +207,21 @@ bool splint( std::vector<double> &xa,
             double x,
             double *y,
             double *dydx );
-                         
-void spline( std::vector<double> &x, 
+
+void spline( std::vector<double> &x,
             std::vector<double> &y,
             int n,
             double yp1, double ypn,
             std::vector<double> &y2 );
-            
+
 void piksrt(int n, double arr[5] );
 
 void EvalMono(double ax, double ay, HPM2D &B, int order, double DeltaX, double DeltaY, double *az);
 
-void FEInterpolate(double Xray, double Yray, double Delta, double Density, 
-            HPM2D &FEData, int NumFEPoints, 
+void FEInterpolate(double Xray, double Yray, double Delta, double Density,
+            HPM2D &FEData, int NumFEPoints,
             double *z, double *zx, double *zy);
-            
+
 void MonoSlope(HPM2D &B, int order, double sxp, double syp, double *dzdx, double *dzdy);
 
 void VSHOTInterpolateModShepard( double Xray, double Yray, double Density,
@@ -246,7 +231,7 @@ void VSHOTInterpolateModShepard( double Xray, double Yray, double Density,
 void FEInterpNew(double Xray, double Yray, double Density,
             HPM2D &FEData, int NumFEPoints,
             double *zr);
-            
+
 void Root_432(int order, double Coeffs[5][5], double RealRoots[5], double *ImRoot1, double *ImRoot2);
 
 bool InitGeometries(TSystem *sys);
@@ -273,9 +258,9 @@ int inquad(double x1, double y1,
                  double xt, double yt);
 
 bool Trace(TSystem *System, unsigned int seed,
-           st_uint_t NumberOfRays, 
+           st_uint_t NumberOfRays,
            st_uint_t MaxNumberOfRays,
-           bool IncludeSunShape, 
+           bool IncludeSunShape,
            bool IncludeErrors,
            bool AsPowerTower,
            int (*callback)(st_uint_t ntracedtotal, st_uint_t ntraced, st_uint_t ntotrace, st_uint_t curstage, st_uint_t nstages, void *data),

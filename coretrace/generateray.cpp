@@ -27,9 +27,9 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the 
-*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to 
-*  any modified version of this software or any modified version of the underlying software originally 
+*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the
+*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to
+*  any modified version of this software or any modified version of the underlying software originally
 *  provided by Alliance without the prior written consent of Alliance.
 *
 *  5. The name of the copyright holder, contributors, the United States Government, the United States
@@ -106,8 +106,8 @@ void GenerateRay(
 
     XRaySun = Sun->MinXSun + (Sun->MaxXSun - Sun->MinXSun)*RANGEN();     //uses a rectangular region of interest about the primary
     YRaySun = Sun->MinYSun + (Sun->MaxYSun - Sun->MinYSun)*RANGEN();     //stage. Added 09/26/05
-        
-        
+
+
     //{Offload ray location and direction cosines into sun array}
     PosRaySun[0] = XRaySun;
     PosRaySun[1] = YRaySun;
@@ -118,66 +118,8 @@ void GenerateRay(
 
     //{Transform ray locations and dir cosines into Stage system}
     TransformToReference(PosRaySun, CosRaySun, PosSunStage, Sun->RLocToRef, PosRayStage, CosRayStage);
-        
+
     //{Transform ray locations and dir cosines into global system}
     TransformToReference(PosRayStage, CosRayStage, Origin, RLocToRef, PosRayGlobal, CosRayGlobal);
 }
 //End of Procedure--------------------------------------------------------------
-
-
-bool LoadExistingStage0Ray(
-    int index,
-    std::vector<std::vector< double > > *raydat,
-    double PosRayGlobal[3],
-    double CosRayGlobal[3],
-    st_uint_t &ElementNum,
-    st_uint_t &RayNum
-    )
-{
-    /* 
-    Load an existing saved ray entering stage 0
-    */
-
-    std::vector<double> *theray = &raydat->at(index);
-    
-    if(theray->size() != 8)
-        return false;
-
-    for(int i=0; i<3; i++)
-    {
-        PosRayGlobal[i] = theray->at(i);
-        CosRayGlobal[i] = theray->at(i+3);
-    }
-    ElementNum = (st_uint_t)theray->at(6);
-    RayNum = (st_uint_t)theray->at(7);
-
-    return true;
-}
-
-bool LoadExistingStage1Ray(
-    int index,
-    std::vector<std::vector< double > > *raydat,
-    double PosRayGlobal[3],
-    double CosRayGlobal[3],
-    int &raynum
-    )
-{
-    /* 
-    Load an existing saved ray leaving stage 1
-    */
-
-    std::vector<double> *theray = &raydat->at(index);
-    
-    if(theray->size() != 7)
-        return false;
-
-    for(int i=0; i<3; i++)
-    {
-        PosRayGlobal[i] = theray->at(i);
-        CosRayGlobal[i] = theray->at(i+3);
-    }
-    raynum = (int)theray->at(6);
-
-    return true;
-}
-
