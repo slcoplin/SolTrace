@@ -53,7 +53,50 @@
 #include "types.h"
 #include "procs.h"
 
+
+// For cudaMalloc
+#include <cuda_runtime.h>
+// For host calls to curand_init which sets up rn
+#include <curand.h>
+// For device calls to curand_uniform. (0.0, 1.0]
+// And defninition of curandState
+#include <curand_kernel.h>
+
+#include "generateray.cuh"
+
+// Lecture slides http://cs.brown.edu/courses/cs195v/lecture/week11.pdf
+// curand documentation https://docs.nvidia.com/cuda/curand/device-api-overview.html#device-api-overview
+// TODO wrap calls?
+
+
 #define RANGEN myrng
+
+__global__
+void ray_kernel(TSystem *System,
+                GlobalRay *IncomingRays,
+                st_uint_t NumberOfRays){
+
+}
+
+void generate_rays(TSystem *System,
+                   GlobalRay *IncomingRays,
+                   st_uint_t NumberOfRays){
+  curandState *d_state;
+  cudaMalloc(&d_state, nThreads * nBlocks);
+
+  GlobalRay *d_IncomingRays;
+  cudaMalloc(&d_IncomingRays, NumberOfRays * sizeof(GlobalRay));
+
+  /*
+  for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
+      double PosRaySun[3]; // Unused. Was for sun hash
+      GenerateRay(myrng, System->Sun.PosSunStage, System->StageList[0]->Origin,
+          System->StageList[0]->RLocToRef, &System->Sun,
+          IncomingRays[RayIndex].Pos, IncomingRays[RayIndex].Cos, PosRaySun);
+      System->SunRayCount++;
+  }
+  */
+}
 
 void GenerateRay(
             MTRand &myrng,
@@ -85,7 +128,6 @@ void GenerateRay(
     double CosRaySun[3] = { 0.0, 0.0, 0.0 };
     double PosRayStage[3] = { 0.0, 0.0, 0.0 };
     double CosRayStage[3] = { 0.0, 0.0, 0.0 };
-    int NegPosSign = 0;
     PosRaySun[0] = 0.;
     PosRaySun[1] = 0.;
     PosRaySun[2] = 0.;
@@ -121,5 +163,6 @@ void GenerateRay(
 
     //{Transform ray locations and dir cosines into global system}
     TransformToReference(PosRayStage, CosRayStage, Origin, RLocToRef, PosRayGlobal, CosRayGlobal);
+
 }
 //End of Procedure--------------------------------------------------------------

@@ -12,8 +12,30 @@ CXX = g++
 
 CFLAGS = -g -O2 -std=c++11 -I. -I$(LKDIR)/include -I$(WEXDIR)/include -I$(CORETRACEDIR) -DLK_USE_WXWIDGETS `wx-config-3 --cflags`
 
+CUDA_PATH       ?= /usr/local/cuda
+CUDA_INC_PATH   ?= $(CUDA_PATH)/include
+CUDA_BIN_PATH   ?= $(CUDA_PATH)/bin
+CUDA_LIB_PATH   ?= $(CUDA_PATH)/lib
+
+# OS-specific build flags
+ifeq ($(shell uname),Darwin)
+	LDFLAGS       := -Xlinker -rpath $(CUDA_LIB_PATH) -L$(CUDA_LIB_PATH) -lcudart -lcufft
+	CFLAGS   	  := $(CFLAGS) -arch $(OS_ARCH)
+else
+	ifeq ($(OS_SIZE),32)
+		LDFLAGS   := -L$(CUDA_LIB_PATH) -lcudart
+		CFLAGS   :=  $(CFLAGS) -m32
+	else
+		CUDA_LIB_PATH := $(CUDA_LIB_PATH)64
+		LDFLAGS       := -L$(CUDA_LIB_PATH) -lcudart
+		CFLAGS       :=  $(CFLAGS) -m64
+	endif
+endif
+
+
+
 CXXFLAGS = $(CFLAGS)
-LDFLAGS =  $(WEXLIB) $(LKLIB) $(CORETRACELIB) `wx-config-3 --libs stc` `wx-config-3 --libs aui` `wx-config-3 --libs gl` `wx-config-3 --libs` -lm -lcurl  -lfontconfig -ldl 
+LDFLAGS :=  $(WEXLIB) $(LKLIB) $(CORETRACELIB) `wx-config-3 --libs stc` `wx-config-3 --libs aui` `wx-config-3 --libs gl` `wx-config-3 --libs` -lm -lcurl  -lfontconfig -ldl $(LDFLAGS)
 
 
 OBJECTS = \
@@ -39,4 +61,3 @@ $(TARGET): $(OBJECTS) $(WEXLIB)
 
 clean:
 	rm -f $(TARGET) $(OBJECTS)
-

@@ -79,7 +79,7 @@ class TOpticalProperties
 public:
     TOpticalProperties();
     TOpticalProperties &operator=(const TOpticalProperties &rhs);
-    
+
     char DistributionType;
     int OpticSurfNumber;
     int ApertureStopOrGratingType;
@@ -90,7 +90,7 @@ public:
     double RMSSpecError;
 
     double RefractiveIndex[4];
-    double AB12[4];    
+    double AB12[4];
 
     bool UseReflectivityTable;
     struct refldat { double angle; double refl; };
@@ -102,15 +102,15 @@ class TOpticalPropertySet
 public:
     std::string Name;
     TOpticalProperties Front;
-    TOpticalProperties Back;    
+    TOpticalProperties Back;
 };
 
 struct TElement
 {
     TElement();
-    
+
     bool Enabled;
-    
+
     /////////// ORIENTATION PARAMETERS ///////////////
     double Origin[3];
     double AimPoint[3];
@@ -119,7 +119,7 @@ struct TElement
     double RRefToLoc[3][3]; // calculated
     double RLocToRef[3][3]; // calculated
     double PosSunCoords[3]; // calculated -- position in sun plane coordinates - mw
-    
+
     /////////// APERTURE PARAMETERS ///////////////
     char ShapeIndex;
     double ParameterA;
@@ -130,15 +130,15 @@ struct TElement
     double ParameterF;
     double ParameterG;
     double ParameterH;
-    
+
     double ApertureArea; // calculated
-    double ZAperture; // calculated 
-    
+    double ZAperture; // calculated
+
     /////////// SURFACE PARAMETERS ///////////////
     char SurfaceIndex;
     int SurfaceType; // calculated
     std::string SurfaceFile;
-    
+
     double Kappa;
     double Alpha[5];
     double VertexCurvX;
@@ -147,9 +147,9 @@ struct TElement
     double CrossSectionRadius;
     double ConeHalfAngle;
     double CurvOfRev;
-        
+
     int FitOrder;
-    
+
 
     // Zernike (*.mon) monomial coeffs
     // (also used for VSHOT Zernike fits)
@@ -157,14 +157,14 @@ struct TElement
 
     // Rotationally symmetric polynomial coeffs
     std::vector< double > PolyCoeffs;
-    
+
     // Rotationally symmetric cubic spline
     std::vector< double > CubicSplineXData;
-    std::vector< double > CubicSplineYData; 
-    std::vector< double > CubicSplineY2Data;   
+    std::vector< double > CubicSplineYData;
+    std::vector< double > CubicSplineY2Data;
     double CubicSplineDYDXbc1;
     double CubicSplineDYDXbcN;
-    
+
     // VSHOT file data
     HPM2D VSHOTData;
     double VSHOTRMSSlope;
@@ -172,16 +172,16 @@ struct TElement
     double VSHOTRadius;
     double VSHOTFocLen;
     double VSHOTTarDis;
-    
+
     // Finite Element data coeffs
-    HPM2D FEData;    
-    
+    HPM2D FEData;
+
     /////////// OPTICAL PARAMETERS ///////////////
     int InteractionType;
     TOpticalPropertySet *Optics;
     std::string OpticName;
 
-    std::string Comment;    
+    std::string Comment;
     int element_number;     //mjw element number in the stage - unique ID in order of addition to element list
 };
 
@@ -189,25 +189,25 @@ struct TSun
 {
     TSun();
     void Reset();
-    
-    char ShapeIndex;    
+
+    char ShapeIndex;
     double Sigma;
     bool PointSource;
-    
+
     std::vector<double> SunShapeAngle;
     std::vector<double> SunShapeIntensity;
     double MaxAngle;
     double MaxIntensity;
-    
-    
+
+
     double Origin[3];
-    
+
     //calculated
     double Euler[3];
     double RRefToLoc[3][3];
     double RLocToRef[3][3];
     double PosSunStage[3];
-    
+
     double MaxRad;
     double Xcm;
     double Ycm;
@@ -282,22 +282,22 @@ struct TStage
 {
     TStage();
     ~TStage();
-        
+
     bool MultiHitsPerRay;
     bool Virtual;
     bool TraceThrough;
-    
+
     double Origin[3];
     double AimPoint[3];
     double ZRot;
 
     std::vector<TElement*> ElementList;
-    
+
     // calculated
     double Euler[3];
     double RRefToLoc[3][3];
     double RLocToRef[3][3];
-    
+
     TRayData RayData;
 };
 
@@ -307,7 +307,7 @@ struct TSystem
     ~TSystem();
 
     void ClearAll();
-    
+
     TSun Sun;
     std::vector<TOpticalPropertySet*> OpticsList;
     std::vector<TStage*> StageList;
@@ -326,6 +326,12 @@ struct TSystem
     std::vector<std::string> messages;
 
     void errlog(const char *fmt, ...);
+};
+
+struct GlobalRay
+{
+    double Pos[3];
+    double Cos[3];
 };
 
 #endif

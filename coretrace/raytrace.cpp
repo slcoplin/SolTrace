@@ -85,12 +85,6 @@ inline void CopyVec3( double dest[3], double src[3] )
 
 #define ZeroVec(x) x[0]=x[1]=x[2]=0.0
 
-struct GlobalRay
-{
-    double Pos[3];
-    double Cos[3];
-};
-
 struct Ray
 {
     double PosRayGlob[3] = { 0.0, 0.0, 0.0 };

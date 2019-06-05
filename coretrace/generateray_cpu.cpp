@@ -85,7 +85,6 @@ void GenerateRay(
     double CosRaySun[3] = { 0.0, 0.0, 0.0 };
     double PosRayStage[3] = { 0.0, 0.0, 0.0 };
     double CosRayStage[3] = { 0.0, 0.0, 0.0 };
-    int NegPosSign = 0;
     PosRaySun[0] = 0.;
     PosRaySun[1] = 0.;
     PosRaySun[2] = 0.;
