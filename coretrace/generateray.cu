@@ -51,7 +51,7 @@
 #include <math.h>
 
 #include "types.h"
-#include "procs.h"
+#include "mathproc_gpu.cuh"
 
 
 // For cudaMalloc
@@ -68,71 +68,29 @@
 // curand documentation https://docs.nvidia.com/cuda/curand/device-api-overview.html#device-api-overview
 // TODO wrap calls?
 
-
-#define RANGEN myrng
+#define SEED 179
 
 __global__
-void ray_kernel(TSystem *System,
-                GlobalRay *IncomingRays,
+void ray_kernel(double MinXSun,
+                double MaxXSun,
+                double MinYSun,
+                double MaxYSun,
+                double *d_PosSunStage,
+                double *d_Origin,
+                double *d_RLocToRef,
+                GlobalRay *d_IncomingRays,
                 st_uint_t NumberOfRays){
 
-}
+    uint thread_id = threadIdx.x + (blockIdx.x * blockDim.x);
 
-void generate_rays(TSystem *System,
-                   GlobalRay *IncomingRays,
-                   st_uint_t NumberOfRays){
-  curandState *d_state;
-  cudaMalloc(&d_state, nThreads * nBlocks);
+    curandState rand_state;
+    // Create random number generator
+    curand_init(SEED, thread_id, 0, &rand_state);
 
-  GlobalRay *d_IncomingRays;
-  cudaMalloc(&d_IncomingRays, NumberOfRays * sizeof(GlobalRay));
 
-  /*
-  for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
-      double PosRaySun[3]; // Unused. Was for sun hash
-      GenerateRay(myrng, System->Sun.PosSunStage, System->StageList[0]->Origin,
-          System->StageList[0]->RLocToRef, &System->Sun,
-          IncomingRays[RayIndex].Pos, IncomingRays[RayIndex].Cos, PosRaySun);
-      System->SunRayCount++;
-  }
-  */
-}
-
-void GenerateRay(
-            MTRand &myrng,
-            double PosSunStage[3],
-            double Origin[3],
-            double RLocToRef[3][3],
-            TSun *Sun,
-            double PosRayGlobal[3],
-            double CosRayGlobal[3],
-            double PosRaySun[3]
-            )
-{
-/*{This procedure generates a randomly located ray in the x-y plane of the sun coordinate system in
- the z direction of the sun coord. system, checks to see that the ray is within the region of interest
- defined by the spatial extent of the elements of Stage as seen from the sun
- and ultimately transforms that ray to the global coord. system.   The z-axis of the sun coord. system points
- towards the Stage coord. system origin.
-
- Input
-       - Seed = Seed for random number generator
-       - Sun = Sun data record of type TSun
-       - Origin = Primary Stage origin
-       - RLocToRef = transformation matrix from local to reference frame
- Output
-       - PosRayGlobal = Position of ray in Global coordinate system
-       - CosRayGlobal = Direction cosines of ray in Global coordinate system} */
-
-    double XRaySun = 0.0, YRaySun = 0.0, ZRaySun = 0.0;
-    double CosRaySun[3] = { 0.0, 0.0, 0.0 };
-    double PosRayStage[3] = { 0.0, 0.0, 0.0 };
-    double CosRayStage[3] = { 0.0, 0.0, 0.0 };
-    PosRaySun[0] = 0.;
-    PosRaySun[1] = 0.;
-    PosRaySun[2] = 0.;
-
-      //ZRaySun := 0.0;  //Origin of rays in xy plane of sun coord system.
+    double XRaySun, YRaySun, ZRaySun;
+    
+    //ZRaySun := 0.0;  //Origin of rays in xy plane of sun coord system.
     ZRaySun = -10000.0;  //changed 5/1/00.  rays originate from well bebind the sun coordinate system xy
                             // plane which has been translated to primary stage origin.         This value has been reduced signficantly because of numerical issues in tracing rays from sun
                             // to the closer form solution for a cylinder.  It used to 1e6 and has been reduced to 1e4, which should still be sufficient.   10-26-09 Wendelin
@@ -146,23 +104,67 @@ void GenerateRay(
     XRaySun := Xcm + XRaySun;  //adjust location of generated rays about element center of mass
     YRaySun := Ycm + YRaySun;}*/
 
-    XRaySun = Sun->MinXSun + (Sun->MaxXSun - Sun->MinXSun)*RANGEN();     //uses a rectangular region of interest about the primary
-    YRaySun = Sun->MinYSun + (Sun->MaxYSun - Sun->MinYSun)*RANGEN();     //stage. Added 09/26/05
+    XRaySun = MinXSun + (MaxXSun - MinXSun) * curand_uniform_double(&rand_state);     //uses a rectangular region of interest about the primary
+    YRaySun = MinYSun + (MaxYSun - MinYSun) * curand_uniform_double(&rand_state);     //stage. Added 09/26/05
 
 
     //{Offload ray location and direction cosines into sun array}
+    double PosRaySun[3];
     PosRaySun[0] = XRaySun;
     PosRaySun[1] = YRaySun;
     PosRaySun[2] = ZRaySun;
+
+    double CosRaySun[3];
     CosRaySun[0] = 0.0;
     CosRaySun[1] = 0.0;
     CosRaySun[2] = 1.0;
 
+    double PosRayStage[3];
+    double CosRayStage[3];
+
     //{Transform ray locations and dir cosines into Stage system}
-    TransformToReference(PosRaySun, CosRaySun, PosSunStage, Sun->RLocToRef, PosRayStage, CosRayStage);
+    TransformToReferenceGPU(PosRaySun, CosRaySun, d_PosSunStage, d_RLocToRef, PosRayStage, CosRayStage);
 
     //{Transform ray locations and dir cosines into global system}
-    TransformToReference(PosRayStage, CosRayStage, Origin, RLocToRef, PosRayGlobal, CosRayGlobal);
-
+    // Puts the result into IncomingRays
+    TransformToReferenceGPU(PosRayStage, CosRayStage, d_Origin, d_RLocToRef, d_IncomingRays[thread_id].Pos, d_IncomingRays[thread_id].Cos);
 }
-//End of Procedure--------------------------------------------------------------
+
+void generate_rays(TSystem *System,
+                   GlobalRay *IncomingRays,
+                   st_uint_t NumberOfRays){
+
+  // Space for output
+  GlobalRay *d_IncomingRays;
+  cudaMalloc(&d_IncomingRays, NumberOfRays * sizeof(GlobalRay));
+
+  // Transfer Sun info into registers
+  double *d_PosSunStage;
+  double *d_Origin;
+  cudaMalloc(&d_PosSunStage, 3 * sizeof(double));
+  cudaMalloc(&d_Origin, 3 * sizeof(double));
+  cudaMemcpy(d_PosSunStage, System->Sun.PosSunStage, 3 * sizeof(double), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_Origin, System->StageList[0]->Origin, 3 * sizeof(double), cudaMemcpyHostToDevice);
+
+  // Transfer input matrix
+  double *d_RLocToRef;
+  cudaMalloc(&d_RLocToRef, 9 * sizeof(double *));
+  for (uint i = 0; i < 3; i++) {
+      cudaMemcpy(d_RLocToRef + 3 * i, System->StageList[0]->RLocToRef[i], 3 * sizeof(double), cudaMemcpyHostToDevice);
+  }
+
+  // Call ray generating kernel
+  uint blocks = 512;
+  uint threads_per_block = 1024;
+  ray_kernel<<<blocks, threads_per_block >>>
+      (System->Sun.MinXSun, System->Sun.MaxXSun,
+      System->Sun.MinYSun, System->Sun.MaxYSun,
+      d_PosSunStage, d_Origin, d_RLocToRef,
+      d_IncomingRays, NumberOfRays
+      );
+
+  // Copy output into IncomingRays
+  cudaMemcpy(IncomingRays, d_IncomingRays, NumberOfRays * sizeof(GlobalRay), cudaMemcpyDeviceToHost);
+
+  System->SunRayCount = NumberOfRays;
+}

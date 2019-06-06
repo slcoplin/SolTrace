@@ -62,6 +62,8 @@
 #include "procs.h"
 #include "treemesh.h"
 
+#include "generateray.cuh"
+
 inline void CopyVec3( double dest[3], const std::vector<double> &src )
 {
     dest[0] = src[0];
@@ -124,24 +126,6 @@ static bool eprojdat_compare(const eprojdat &A, const eprojdat &B)
 {
     return A.d_proj > B.d_proj;
 };
-
-/**
- * Generate rays for a given system
- * @param System       A System. Stage 0 has sun. Defines Sun.
- * @param IncomingRays An allocated array of rays (in global position).
- *                     Modified to contain generated rays.
- * @param NumberOfRays Number of rays to generate.
- *                     IncomingRays must have space for NumberOfRays
- */
-void generate_rays(TSystem *System, GlobalRay *IncomingRays, st_uint_t NumberOfRays, MTRand &myrng){
-    for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
-        double PosRaySun[3]; // Unused. Was for sun hash
-        GenerateRay(myrng, System->Sun.PosSunStage, System->StageList[0]->Origin,
-            System->StageList[0]->RLocToRef, &System->Sun,
-            IncomingRays[RayIndex].Pos, IncomingRays[RayIndex].Cos, PosRaySun);
-        System->SunRayCount++;
-    }
-}
 
 /*
  * Check the ray for intersections with all elements in element_list.
@@ -277,7 +261,7 @@ bool Trace(TSystem *System, unsigned int seed,
         GlobalRay *IncomingRays = (GlobalRay *) malloc(NumberOfRays * sizeof(GlobalRay));
         assert(IncomingRays);
 
-        generate_rays(System, IncomingRays, NumberOfRays, myrng);
+        generate_rays(System, IncomingRays, NumberOfRays);
 
 
         for (st_uint_t cur_stage_i=0;cur_stage_i<System->StageList.size();cur_stage_i++)
