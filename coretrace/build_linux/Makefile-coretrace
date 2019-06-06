@@ -62,12 +62,12 @@ $(TARGET):$(OBJECTS)
 	ar rs $(TARGET) $(OBJECTS)
 
 generateray.o: generateray.cu
-	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -dc $<
+	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -c $<
 
 # -dc means the library is useable in multiple kernels. It will generally just get compiled
 # inline
 #mathproc_gpu.o: mathproc_gpu.cu
-#	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -dc $<
+#c	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -dc $<
 
 #generateray_link.o: generateray.o mathproc_gpu.o
 #	echo LINKER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
