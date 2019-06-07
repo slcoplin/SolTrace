@@ -32,6 +32,7 @@ endif
 OBJECTS = \
     treemesh.o \
     apertureplane.o \
+    check_intersection.o \
     determineelementintersectionnew.o \
     dumpsys.o \
     errors.o \
@@ -68,6 +69,10 @@ generateray.o: generateray.cu
 # inline
 gpu_proc.o: gpu_proc.cu
 	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -c $<
+
+check_intersection.o: check_intersection.cu
+	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -c $<
+
 
 clean:
 	rm -rf $(TARGET) $(OBJECTS)

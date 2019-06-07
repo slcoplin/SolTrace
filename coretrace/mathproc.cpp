@@ -27,9 +27,9 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the 
-*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to 
-*  any modified version of this software or any modified version of the underlying software originally 
+*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the
+*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to
+*  any modified version of this software or any modified version of the underlying software originally
 *  provided by Alliance without the prior written consent of Alliance.
 *
 *  5. The name of the copyright holder, contributors, the United States Government, the United States
@@ -112,8 +112,8 @@ void MatrixTranspose(double InputMatrix[3][3], int NumRowsCols, double OutputMat
 
 //end of procedure--------------------------------------------------------------
 
-void TransformToLocal(double PosRef[3], double CosRef[3], double Origin[3], 
-        double RRefToLoc[3][3], 
+void TransformToLocal(double PosRef[3], double CosRef[3], double Origin[3],
+        double RRefToLoc[3][3],
         double PosLoc[3], double CosLoc[3])
 {
 /*{Purpose:  To perform coordinate transformation from reference system to local
@@ -143,8 +143,8 @@ void TransformToLocal(double PosRef[3], double CosRef[3], double Origin[3],
 //end of procedure--------------------------------------------------------------
 
 
-void TransformToReference(double PosLoc[3], double CosLoc[3], double Origin[3], 
-        double RLocToRef[3][3], 
+void TransformToReference(double PosLoc[3], double CosLoc[3], double Origin[3],
+        double RLocToRef[3][3],
         double PosRef[3], double CosRef[3])
 {
 /*{Purpose:  To perform coordinate transformation from local system to reference
@@ -162,7 +162,7 @@ void TransformToReference(double PosLoc[3], double CosLoc[3], double Origin[3],
                  CosRef = Direction cosines of ray in reference system}*/
 
     double PosDum[3];
-    
+
 /*{Use previously calculated RLocToRef matrix (in TransformToLocal) to obtain the
  inverse transformation back to Reference system.}*/
      MatrixVectorMult(RLocToRef, PosLoc, PosDum);
@@ -186,7 +186,7 @@ void CalculateTransformMatrices(double Euler[3], double RRefToLoc[3][3], double 
     double SinAlpha = 0.0;
     double SinBeta = 0.0;
     double SinGamma = 0.0;
-    
+
 /*{Offload Alpha, Beta and Gamma: the three Euler rotations from Ref frame to Local
  frame. Also calculate their cosines.}*/
     Alpha = Euler[0];
@@ -234,7 +234,7 @@ void PolySlope( std::vector<double> &Coeffs, int POrder, double ax, double ay, d
     double drdy = ay/r;
     for (int i=1;i<=POrder;i++)
         dzdr = dzdr + i*Coeffs[i]*pow(r, i-1);
-    
+
     *dzdx = dzdr*drdx;
     *dzdy = dzdr*drdy;
 }
@@ -262,11 +262,11 @@ bool splint( std::vector<double> &xa,
         else
             klo = k;
     }
-    
+
     h = xa[khi]-xa[klo];
     if (h != 0.0)
     {
-    
+
         a = (xa[khi]-x)/h;
         b = (x-xa[klo])/h;
         *y = a*ya[klo]+b*ya[khi]+
@@ -284,7 +284,7 @@ bool splint( std::vector<double> &xa,
 
 //end of procedure--------------------------------------------------------------
 
-void spline( std::vector<double> &x, 
+void spline( std::vector<double> &x,
             std::vector<double> &y,
             int n,
             double yp1, double ypn,
@@ -312,7 +312,7 @@ void spline( std::vector<double> &x,
         u[i] = (y[i+1]-y[i])/(x[i+1]-x[i])-(y[i]-y[i-1])/(x[i]-x[i-1]);
         u[i] = (6.0*u[i]/(x[i+1]-x[i-1])-sig*u[i-1])/p;
     }
-    
+
     if (ypn > 0.99e30 )
     {
         qn = 0.0;

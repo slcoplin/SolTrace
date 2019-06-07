@@ -241,10 +241,26 @@ bool ReadSurfaceFile( const char *file, TElement *elm );
 bool TranslateSurfaceParams( TSystem *sys, TElement *elm, double params[8]);
 bool ReadSurfaceFile(const char *file, TElement *elm, TSystem *sys);
 
-inline void CopyVec3( double dest[3], const std::vector<double> &src );
-inline void CopyVec3( std::vector<double> &dest, double src[3] );
-inline void CopyVec3( double dest[3], double src[3] );
+inline void CopyVec3( double dest[3], const std::vector<double> &src )
+{
+    dest[0] = src[0];
+    dest[1] = src[1];
+    dest[2] = src[2];
+}
 
+inline void CopyVec3( std::vector<double> &dest, double src[3] )
+{
+    dest[0] = src[0];
+    dest[1] = src[1];
+    dest[2] = src[2];
+}
+
+inline void CopyVec3( double dest[3], double src[3] )
+{
+    dest[0] = src[0];
+    dest[1] = src[1];
+    dest[2] = src[2];
+}
 
 int intri(double x1, double y1,
                  double x2, double y2,

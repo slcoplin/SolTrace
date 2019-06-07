@@ -27,9 +27,9 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the 
-*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to 
-*  any modified version of this software or any modified version of the underlying software originally 
+*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the
+*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to
+*  any modified version of this software or any modified version of the underlying software originally
 *  provided by Alliance without the prior written consent of Alliance.
 *
 *  5. The name of the copyright holder, contributors, the United States Government, the United States
@@ -332,6 +332,22 @@ struct GlobalRay
 {
     double Pos[3];
     double Cos[3];
+};
+
+struct Ray
+{
+    double PosRayGlob[3] = { 0.0, 0.0, 0.0 };
+    double CosRayGlob[3] = { 0.0, 0.0, 0.0 };
+    double PosRayStage[3] = { 0.0, 0.0, 0.0 };
+    double CosRayStage[3] = { 0.0, 0.0, 0.0 };
+    double LastPosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
+    double LastCosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
+    double LastPosRaySurfStage[3] = { 0.0, 0.0, 0.0 }; // Position the ray collides with an element, in the reference frame of the stage
+    double LastCosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
+    double LastDFXYZ[3] = { 0.0, 0.0, 0.0 };
+    int LastHitBackSide = 0;
+    st_uint_t LastElementNumber = 0;
+    bool StageHit = false;
 };
 
 #endif

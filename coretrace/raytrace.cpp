@@ -63,45 +63,9 @@
 #include "treemesh.h"
 
 #include "generateray.cuh"
-
-inline void CopyVec3( double dest[3], const std::vector<double> &src )
-{
-    dest[0] = src[0];
-    dest[1] = src[1];
-    dest[2] = src[2];
-}
-
-inline void CopyVec3( std::vector<double> &dest, double src[3] )
-{
-    dest[0] = src[0];
-    dest[1] = src[1];
-    dest[2] = src[2];
-}
-
-inline void CopyVec3( double dest[3], double src[3] )
-{
-    dest[0] = src[0];
-    dest[1] = src[1];
-    dest[2] = src[2];
-}
+#include "check_intersection.cuh"
 
 #define ZeroVec(x) x[0]=x[1]=x[2]=0.0
-
-struct Ray
-{
-    double PosRayGlob[3] = { 0.0, 0.0, 0.0 };
-    double CosRayGlob[3] = { 0.0, 0.0, 0.0 };
-    double PosRayStage[3] = { 0.0, 0.0, 0.0 };
-    double CosRayStage[3] = { 0.0, 0.0, 0.0 };
-    double LastPosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
-    double LastCosRaySurfElement[3] = { 0.0, 0.0, 0.0 };
-    double LastPosRaySurfStage[3] = { 0.0, 0.0, 0.0 }; // Position the ray collides with an element, in the reference frame of the stage
-    double LastCosRaySurfStage[3] = { 0.0, 0.0, 0.0 };
-    double LastDFXYZ[3] = { 0.0, 0.0, 0.0 };
-    int LastHitBackSide = 0;
-    st_uint_t LastElementNumber = 0;
-    bool StageHit = false;
-};
 
 //structure to store element address and projected polar coordinate size
 struct eprojdat
@@ -126,86 +90,6 @@ static bool eprojdat_compare(const eprojdat &A, const eprojdat &B)
 {
     return A.d_proj > B.d_proj;
 };
-
-/*
- * Check the ray for intersections with all elements in element_list.
- * Modifies ray.
- *
- * Inputs: Variables as defined in Trace.
- *
- */
-void check_intersection_in_stage(std::vector<TElement*> &element_list,
-		   	   	   	             st_uint_t nintelements,
-							     Ray &ray){
-    ray.StageHit = false;
-	for (st_uint_t j = 0; j < nintelements; j++)
-	{
-		TElement *Element;
-		Element = element_list[j];
-
-		if (!Element->Enabled)
-			continue;
-
-        double LastPathLength = 1e99;
-        double PathLength;
-        double DFXYZ[3];
-        double PosRaySurfElement[3];
-        double CosRaySurfElement[3];
-        double PosRaySurfStage[3];
-        double CosRaySurfStage[3];
-        double PosRayElement[3];
-        double CosRayElement[3];
-
-		//  {Transform ray to element[j] coord system of Stage[i]}
-		TransformToLocal(ray.PosRayStage, ray.CosRayStage,
-			Element->Origin, Element->RRefToLoc,
-			PosRayElement, CosRayElement);
-
-		// increment position by tiny amount to get off the element if tracing to the same element
-		for (int i = 0; i < 3; i++) {
-			PosRayElement[i] = PosRayElement[i] + 1.0e-5*CosRayElement[i];
-		}
-
-        int ErrorFlag = 0;
-        int HitBackSide = 0;
-		int InterceptFlag = 0;
-
-		// {Determine if ray intersects element[j]; if so, Find intersection point with surface of element[j] }
-		DetermineElementIntersectionNew(Element, PosRayElement, CosRayElement,
-			PosRaySurfElement, CosRaySurfElement, DFXYZ,
-			&PathLength, &ErrorFlag, &InterceptFlag, &HitBackSide);
-
-		if (InterceptFlag)
-		{
-			//{If hit multiple elements, this loop determines which one hit first.
-			//Also makes sure that correct part of closed surface is hit. Also, handles wavy, but close to flat zernikes and polynomials correctly.}
-			//if (PathLength < LastPathLength) and (PosRaySurfElement[2] <= Element->ZAperture) then
-			if (PathLength < LastPathLength)
-			{
-				if (PosRaySurfElement[2] <= Element->ZAperture
-					|| Element->SurfaceIndex == 'm'
-					|| Element->SurfaceIndex == 'M'
-					|| Element->SurfaceIndex == 'r'
-					|| Element->SurfaceIndex == 'R')
-				{
-					ray.StageHit = true;
-					LastPathLength = PathLength;
-					CopyVec3(ray.LastPosRaySurfElement, PosRaySurfElement);
-					CopyVec3(ray.LastCosRaySurfElement, CosRaySurfElement);
-					CopyVec3(ray.LastDFXYZ, DFXYZ);
-					ray.LastElementNumber = j + 1;    //mjw change from j index to element id
-					TransformToReference(PosRaySurfElement, CosRaySurfElement,
-						Element->Origin, Element->RLocToRef,
-						PosRaySurfStage, CosRaySurfStage);
-
-					CopyVec3(ray.LastPosRaySurfStage, PosRaySurfStage);
-					CopyVec3(ray.LastCosRaySurfStage, CosRaySurfStage);
-					ray.LastHitBackSide = HitBackSide;
-				}
-			}
-		}
-	}
-}
 
 bool check_input(st_uint_t NumberOfRays, TSystem *System){
     if (NumberOfRays < 1)
@@ -235,7 +119,7 @@ bool Trace(TSystem *System, unsigned int seed,
            std::vector< std::vector< double > > *st1in,
            bool save_st_data) // FALSE, st0data and st1in are null.
 {
-	ZeroVec(System->Sun.PosSunStage);
+    ZeroVec(System->Sun.PosSunStage);
 
     //bool aspowertower_ok = false;
 
@@ -269,88 +153,88 @@ bool Trace(TSystem *System, unsigned int seed,
 
             Stage = System->StageList[cur_stage_i];
 
-			// loop through rays within each stage
-			for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
+            // loop through rays within each stage
+            for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
 
                 // Initialize ray variables
                 Ray ray;
 
-				// Load the ray
-				// TODO: Add handler for i > 0 stage : DONE
-			    CopyVec3( ray.PosRayGlob, IncomingRays[RayIndex].Pos );
-				CopyVec3( ray.CosRayGlob, IncomingRays[RayIndex].Cos );
+                // Load the ray
+                // TODO: Add handler for i > 0 stage : DONE
+                CopyVec3( ray.PosRayGlob, IncomingRays[RayIndex].Pos );
+                CopyVec3( ray.CosRayGlob, IncomingRays[RayIndex].Cos );
 
-				// transform the global incoming ray to local stage coordinates
-				TransformToLocal(ray.PosRayGlob, ray.CosRayGlob,
-					Stage->Origin, Stage->RRefToLoc,
-					ray.PosRayStage, ray.CosRayStage);
-
-
-				// Start ray tracing
-
-				// Getting list of elements to check for intersection
+                // transform the global incoming ray to local stage coordinates
+                TransformToLocal(ray.PosRayGlob, ray.CosRayGlob,
+                    Stage->Origin, Stage->RRefToLoc,
+                    ray.PosRayStage, ray.CosRayStage);
 
 
-				// Find number of elements to check intersections with, and set element_list
-				st_uint_t nintelements = Stage->ElementList.size();
+                // Start ray tracing
+
+                // Getting list of elements to check for intersection
+
+
+                // Find number of elements to check intersections with, and set element_list
+                st_uint_t nintelements = Stage->ElementList.size();
                 std::vector<TElement*> element_list = Stage->ElementList;
 
-				// Check for ray intersections
-				check_intersection_in_stage(element_list, nintelements, ray);
+                // Check for ray intersections
+                check_intersection_in_stage(element_list, nintelements, ray);
 
-                // If the ray hits something, handle it
-				if (ray.StageHit)
-				{
-    				// time for optics
+        // If the ray hits something, handle it
+                if (ray.StageHit)
+                {
+                    // time for optics
 
-    				// {Otherwise trace ray through interaction}
-    				// {Determine if backside or frontside properties should be used}
+                    // {Otherwise trace ray through interaction}
+                    // {Determine if backside or frontside properties should be used}
 
-    				// trace through the interaction
-    				optelm = Stage->ElementList[ ray.LastElementNumber - 1 ];
-    				optics = 0;
+                    // trace through the interaction
+                    optelm = Stage->ElementList[ ray.LastElementNumber - 1 ];
+                    optics = 0;
 
-    				if (ray.LastHitBackSide)
-    					optics = &optelm->Optics->Back;
-    				else
-    					optics = &optelm->Optics->Front;
+                    if (ray.LastHitBackSide)
+                        optics = &optelm->Optics->Back;
+                    else
+                        optics = &optelm->Optics->Front;
 
                     // Does the interaction with the element collided with, and
                     // converts the ray into the global reference frame
 
-    				k = ray.LastElementNumber - 1;
+                    k = ray.LastElementNumber - 1;
 
-    				// Do the ray interaction (reflect, etc)
-    				if (IncludeSunShape && cur_stage_i == 0)
-    				{
+                    // Do the ray interaction (reflect, etc)
+                    if (IncludeSunShape && cur_stage_i == 0)
+                    {
                         // change to account for first hit only in primary stage 8-11-31. (Only does first hit, not future ones)
-    					// Apply sunshape to UNPERTURBED ray at intersection point
-    					//only apply sunshape error once for primary stage
+                        // Apply sunshape to UNPERTURBED ray at intersection point
+                        //only apply sunshape error once for primary stage
 
                         double CosIn[3];
                         double CosOut[3] = { 0.0, 0.0, 0.0 };
 
-    					CopyVec3(CosIn, ray.LastCosRaySurfElement);
-    					Errors(myrng, CosIn, 1, &System->Sun,
-    						   Stage->ElementList[k], optics, CosOut, ray.LastDFXYZ);  //sun shape
-    					CopyVec3(ray.LastCosRaySurfElement, CosOut);
-    				}
+                        CopyVec3(CosIn, ray.LastCosRaySurfElement);
+                        Errors(myrng, CosIn, 1, &System->Sun,
+                               Stage->ElementList[k], optics, CosOut, ray.LastDFXYZ);  //sun shape
+                        CopyVec3(ray.LastCosRaySurfElement, CosOut);
+                    }
 
-    				//{Determine interaction at surface and direction of perturbed ray}
-					int ErrorFlag = 0;
+                    //{Determine interaction at surface and direction of perturbed ray}
+                    int ErrorFlag = 0;
                     double PosRayOutElement[3] = { 0.0, 0.0, 0.0 };
                     double CosRayOutElement[3] = { 0.0, 0.0, 0.0 };
-    				Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
-    					Stage->ElementList[k]->InteractionType, optics, 630.0,
-    					PosRayOutElement, CosRayOutElement, &ErrorFlag);
+                    Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
+                        Stage->ElementList[k]->InteractionType, optics, 630.0,
+                        PosRayOutElement, CosRayOutElement, &ErrorFlag);
 
-    				// { Transform ray back to stage coord system and trace through stage again}
-    				TransformToReference(PosRayOutElement, CosRayOutElement,
-    						Stage->ElementList[k]->Origin, Stage->ElementList[k]->RLocToRef,
-    						ray.PosRayStage, ray.CosRayStage);
-    				TransformToReference(ray.PosRayStage, ray.CosRayStage,
-    						Stage->Origin, Stage->RLocToRef,
-    						ray.PosRayGlob, ray.CosRayGlob);
+                    // { Transform ray back to stage coord system and trace through stage again}
+                    TransformToReference(PosRayOutElement, CosRayOutElement,
+                            Stage->ElementList[k]->Origin, Stage->ElementList[k]->RLocToRef,
+                            ray.PosRayStage, ray.CosRayStage);
+                    TransformToReference(ray.PosRayStage, ray.CosRayStage,
+                            Stage->Origin, Stage->RLocToRef,
+                            ray.PosRayGlob, ray.CosRayGlob);
                 }
                 else { // No collision happened
                     // This might be wrong in the stage 0 case, because of the way we no longer
@@ -377,7 +261,7 @@ bool Trace(TSystem *System, unsigned int seed,
                 // Save ray data
                 CopyVec3(IncomingRays[RayIndex].Pos, ray.PosRayGlob);
                 CopyVec3(IncomingRays[RayIndex].Cos, ray.CosRayGlob);
-			}
+            }
 
         }
 
