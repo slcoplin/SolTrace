@@ -62,7 +62,7 @@
 #include "procs.h"
 #include "treemesh.h"
 
-#include "generateray.cuh"
+#include "generateray->cuh"
 #include "check_intersection.cuh"
 
 #define ZeroVec(x) x[0]=x[1]=x[2]=0.0
@@ -153,21 +153,27 @@ bool Trace(TSystem *System, unsigned int seed,
 
             Stage = System->StageList[cur_stage_i];
 
+            // List of Rays that will have their information filled to complete
+            // the tracing loop.
+            // Starts all variables at 0.
+            Ray *AllRays = (Ray *) calloc(NumberOfRays, sizeof(Ray));
+            assert(AllRays);
+
             // loop through rays within each stage
             for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
 
                 // Initialize ray variables
-                Ray ray;
+                Ray *ray = &AllRays[RayIndex]; // Same as AllRays + RayIndex
 
                 // Load the ray
                 // TODO: Add handler for i > 0 stage : DONE
-                CopyVec3( ray.PosRayGlob, IncomingRays[RayIndex].Pos );
-                CopyVec3( ray.CosRayGlob, IncomingRays[RayIndex].Cos );
+                CopyVec3( ray->PosRayGlob, IncomingRays[RayIndex].Pos );
+                CopyVec3( ray->CosRayGlob, IncomingRays[RayIndex].Cos );
 
                 // transform the global incoming ray to local stage coordinates
-                TransformToLocal(ray.PosRayGlob, ray.CosRayGlob,
+                TransformToLocal(ray->PosRayGlob, ray->CosRayGlob,
                     Stage->Origin, Stage->RRefToLoc,
-                    ray.PosRayStage, ray.CosRayStage);
+                    ray->PosRayStage, ray->CosRayStage);
 
 
                 // Start ray tracing
@@ -183,7 +189,7 @@ bool Trace(TSystem *System, unsigned int seed,
                 check_intersection_in_stage(element_list, nintelements, ray);
 
         // If the ray hits something, handle it
-                if (ray.StageHit)
+                if (ray->StageHit)
                 {
                     // time for optics
 
@@ -191,10 +197,10 @@ bool Trace(TSystem *System, unsigned int seed,
                     // {Determine if backside or frontside properties should be used}
 
                     // trace through the interaction
-                    optelm = Stage->ElementList[ ray.LastElementNumber - 1 ];
+                    optelm = Stage->ElementList[ ray->LastElementNumber - 1 ];
                     optics = 0;
 
-                    if (ray.LastHitBackSide)
+                    if (ray->LastHitBackSide)
                         optics = &optelm->Optics->Back;
                     else
                         optics = &optelm->Optics->Front;
@@ -202,7 +208,7 @@ bool Trace(TSystem *System, unsigned int seed,
                     // Does the interaction with the element collided with, and
                     // converts the ray into the global reference frame
 
-                    k = ray.LastElementNumber - 1;
+                    k = ray->LastElementNumber - 1;
 
                     // Do the ray interaction (reflect, etc)
                     if (IncludeSunShape && cur_stage_i == 0)
@@ -214,42 +220,43 @@ bool Trace(TSystem *System, unsigned int seed,
                         double CosIn[3];
                         double CosOut[3] = { 0.0, 0.0, 0.0 };
 
-                        CopyVec3(CosIn, ray.LastCosRaySurfElement);
+                        CopyVec3(CosIn, ray->LastCosRaySurfElement);
                         Errors(myrng, CosIn, 1, &System->Sun,
-                               Stage->ElementList[k], optics, CosOut, ray.LastDFXYZ);  //sun shape
-                        CopyVec3(ray.LastCosRaySurfElement, CosOut);
+                               Stage->ElementList[k], optics, CosOut, ray->LastDFXYZ);  //sun shape
+                        CopyVec3(ray->LastCosRaySurfElement, CosOut);
                     }
 
                     //{Determine interaction at surface and direction of perturbed ray}
                     int ErrorFlag = 0;
                     double PosRayOutElement[3] = { 0.0, 0.0, 0.0 };
                     double CosRayOutElement[3] = { 0.0, 0.0, 0.0 };
-                    Interaction( myrng, ray.LastPosRaySurfElement, ray.LastCosRaySurfElement, ray.LastDFXYZ,
+                    Interaction( myrng, ray->LastPosRaySurfElement, ray->LastCosRaySurfElement, ray->LastDFXYZ,
                         Stage->ElementList[k]->InteractionType, optics, 630.0,
                         PosRayOutElement, CosRayOutElement, &ErrorFlag);
 
                     // { Transform ray back to stage coord system and trace through stage again}
+
                     TransformToReference(PosRayOutElement, CosRayOutElement,
                             Stage->ElementList[k]->Origin, Stage->ElementList[k]->RLocToRef,
-                            ray.PosRayStage, ray.CosRayStage);
-                    TransformToReference(ray.PosRayStage, ray.CosRayStage,
+                            ray->PosRayStage, ray->CosRayStage);
+                    TransformToReference(ray->PosRayStage, ray->CosRayStage,
                             Stage->Origin, Stage->RLocToRef,
-                            ray.PosRayGlob, ray.CosRayGlob);
+                            ray->PosRayGlob, ray->CosRayGlob);
                 }
                 else { // No collision happened
                     // This might be wrong in the stage 0 case, because of the way we no longer
                     // regenerate rays if they don't hit something in stage 0
-                    CopyVec3(ray.LastPosRaySurfStage, ray.PosRayStage);
-                    CopyVec3(ray.LastCosRaySurfStage, ray.CosRayStage);
+                    CopyVec3(ray->LastPosRaySurfStage, ray->PosRayStage);
+                    CopyVec3(ray->LastCosRaySurfStage, ray->CosRayStage);
                 }
 
                 // append ray data
                 // Records the point of collision
                 // If we allow multiple collisions, I'm not sure what will happen
                 TRayData::ray_t *p_ray = 0;
-                p_ray = Stage->RayData.Append( ray.LastPosRaySurfStage,
-                                      ray.LastCosRaySurfStage,
-                                      ray.LastElementNumber,
+                p_ray = Stage->RayData.Append( ray->LastPosRaySurfStage,
+                                      ray->LastCosRaySurfStage,
+                                      ray->LastElementNumber,
                                       cur_stage_i+1,
                                       RayIndex );
                 if (!p_ray)
@@ -259,8 +266,8 @@ bool Trace(TSystem *System, unsigned int seed,
                 }
 
                 // Save ray data
-                CopyVec3(IncomingRays[RayIndex].Pos, ray.PosRayGlob);
-                CopyVec3(IncomingRays[RayIndex].Cos, ray.CosRayGlob);
+                CopyVec3(IncomingRays[RayIndex].Pos, ray->PosRayGlob);
+                CopyVec3(IncomingRays[RayIndex].Cos, ray->CosRayGlob);
             }
 
         }
