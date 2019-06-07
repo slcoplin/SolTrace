@@ -47,10 +47,6 @@
 *  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************************************/
 
-
-#include <math.h>
-#include <stdlib.h>
-
 #include "types.h"
 #include "gpu_proc.cuh"
 
