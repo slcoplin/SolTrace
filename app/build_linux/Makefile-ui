@@ -54,7 +54,7 @@ OBJECTS = \
 
 TARGET = soltrace
 
-$(TARGET): $(OBJECTS) $(WEXLIB)
+$(TARGET): $(OBJECTS) $(WEXLIB) $(CORETRACELIB)
 	$(CXX) -g $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 	mkdir -p ../deploy/linux_64
 	cp $(TARGET) ../deploy/linux_64

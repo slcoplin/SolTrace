@@ -40,6 +40,7 @@ OBJECTS = \
     interaction.o \
     intersect.o \
     mathproc.o \
+    gpu_proc.o \
     newzstartforcubicsplinesurf.o \
     quadricsurfaceclosedform.o \
     root432.o \
@@ -53,7 +54,6 @@ OBJECTS = \
     raytrace.o \
     types.o \
     vshot.o
-	# generateray_link.o \
 
 
 TARGET=coretrace.a
@@ -66,12 +66,8 @@ generateray.o: generateray.cu
 
 # -dc means the library is useable in multiple kernels. It will generally just get compiled
 # inline
-#mathproc_gpu.o: mathproc_gpu.cu
-#c	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -dc $<
-
-#generateray_link.o: generateray.o mathproc_gpu.o
-#	echo LINKER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -dlink mathproc_gpu.o generateray.o -o $@
+gpu_proc.o: gpu_proc.cu
+	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -c $<
 
 clean:
 	rm -rf $(TARGET) $(OBJECTS)
