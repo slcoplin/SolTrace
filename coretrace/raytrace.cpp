@@ -62,7 +62,7 @@
 #include "procs.h"
 #include "treemesh.h"
 
-#include "generateray->cuh"
+#include "generateray.cuh"
 #include "check_intersection.cuh"
 
 #define ZeroVec(x) x[0]=x[1]=x[2]=0.0
@@ -130,8 +130,6 @@ bool Trace(TSystem *System, unsigned int seed,
         int k = 0;
         TElement *optelm = 0;
 
-        TStage *Stage;
-
         System->SunRayCount = 0;
         MTRand myrng(seed);
 
@@ -151,7 +149,7 @@ bool Trace(TSystem *System, unsigned int seed,
         for (st_uint_t cur_stage_i=0;cur_stage_i<System->StageList.size();cur_stage_i++)
         {
 
-            Stage = System->StageList[cur_stage_i];
+            TStage *Stage = System->StageList[cur_stage_i];
 
             // List of Rays that will have their information filled to complete
             // the tracing loop.
@@ -159,7 +157,7 @@ bool Trace(TSystem *System, unsigned int seed,
             Ray *AllRays = (Ray *) calloc(NumberOfRays, sizeof(Ray));
             assert(AllRays);
 
-            // loop through rays within each stage
+            // Load info into AllRays
             for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
 
                 // Initialize ray variables
@@ -174,21 +172,18 @@ bool Trace(TSystem *System, unsigned int seed,
                 TransformToLocal(ray->PosRayGlob, ray->CosRayGlob,
                     Stage->Origin, Stage->RRefToLoc,
                     ray->PosRayStage, ray->CosRayStage);
+            }
 
+            // Check for an intersection for all rays in AllRays
+            // Fills AllRays with relevant info
+            check_intersection_for_all_rays(Stage, AllRays, NumberOfRays);
 
-                // Start ray tracing
+            // Manage the collisions for all rays in AllRays and store output
+            for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
 
-                // Getting list of elements to check for intersection
+                Ray *ray = &AllRays[RayIndex];
 
-
-                // Find number of elements to check intersections with, and set element_list
-                st_uint_t nintelements = Stage->ElementList.size();
-                std::vector<TElement*> element_list = Stage->ElementList;
-
-                // Check for ray intersections
-                check_intersection_in_stage(element_list, nintelements, ray);
-
-        // If the ray hits something, handle it
+                // If the ray hits something, handle it
                 if (ray->StageHit)
                 {
                     // time for optics
