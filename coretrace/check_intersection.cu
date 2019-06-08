@@ -150,7 +150,7 @@ void check_intersection_for_all_rays(TStage *Stage, Ray *AllRays, st_uint_t Numb
 
     // Call kernel
     // Check for an intersection for all rays in AllRays
-    uint blocks = 512;
+    uint blocks = 1024;
     uint threads_per_block = 512;
     check_for_intersection_kernel << <blocks, threads_per_block >> >
         (d_element_list, nintelements, d_AllRays, NumberOfRays);
