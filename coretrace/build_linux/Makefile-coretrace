@@ -32,14 +32,14 @@ endif
 OBJECTS = \
     treemesh.o \
     apertureplane.o \
-    check_intersection.o \
+    gpu_check_intersection.o \
     dumpsys.o \
     errors.o \
-    generateray.o \
+    gpu_generateray.o \
     input.o \
     interaction.o \
     mathproc.o \
-    gpu_proc.o \
+    gpu_mathproc.o \
     newzstartforcubicsplinesurf.o \
     root432.o \
     spencerandmurtysurfaceclosedform.o \
@@ -50,6 +50,11 @@ OBJECTS = \
     raytrace.o \
     types.o \
     vshot.o \
+    gpu_determineelementintersectionnew.o \
+    gpu_intersect.o \
+    gpu_quadricsurfaceclosedform.o \
+    gpu_surface.o \
+    gpu_surfacezatxypair.o \
 	gpu_linker.o
 
 
@@ -58,19 +63,16 @@ TARGET=coretrace.a
 $(TARGET):$(OBJECTS)
 	ar rs $(TARGET) $(OBJECTS)
 
-generateray.o: generateray.cu
-	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -dc $<
-
 # -dc means the library is useable in multiple kernels. It will generally just get compiled
 # inline
-gpu_proc.o: gpu_proc.cu
+gpu_mathproc.o: gpu_mathproc.cu
 	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -dc $<
 
-check_intersection.o: check_intersection.cu
-	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -c $<
+gpu_linker.o: gpu_proc.o generateray.o check_intersection.o
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -dlink  gpu_proc.o generateray.o check_intersection.o -o $@
 
-gpu_linker.o: gpu_proc.o generateray.o
-	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -dlink  gpu_proc.o generateray.o -o $@
+gpu_%.o: %.cu
+	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -dc $<
 
 
 clean:

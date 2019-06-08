@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include "types.h"
-#include "procs.h"
+#include "gpu_proc.cuh"
 
+__device__
 void DetermineElementIntersectionNew(
-            TElement *Element,
+            ElementInfo *Element,
             double PosRayIn[3],
             double CosRayIn[3],
             double PosRayOut[3],
@@ -24,7 +25,6 @@ void DetermineElementIntersectionNew(
    //ZAperPlane: real;
 
     *ErrorFlag = 0;
-    double SLOP30 = 0.57735026918962573; //tan(30.0*(acos(-1.0)/180.0));
     double SLOP60 = 1.7320508075688767; //tan(60.0*(acos(-1.0)/180.0));
 
     //AperturePlane(Element);           <------- calculated now in ODConcentrator
@@ -80,14 +80,13 @@ void DetermineElementIntersectionNew(
             }
             else
             {
-                if (DOT(CosRayIn, DFXYZ) < 0)
+                if (DOT_GPU(CosRayIn, DFXYZ) < 0)
                     *BacksideFlag = false;
                 else
                     *BacksideFlag = true;
                 *Intercept = true;
                 goto Label_100;
             }
-        break;
 
     case 'h':
     case 'H': //hexagonal aperture
@@ -114,7 +113,7 @@ void DetermineElementIntersectionNew(
 
             if ( r <= Ri ) //ray falls inside inscribed circle
             {
-                if ( DOT(CosRayIn, DFXYZ) < 0 )
+                if ( DOT_GPU(CosRayIn, DFXYZ) < 0 )
                     *BacksideFlag = false;
                 else
                     *BacksideFlag = true;
@@ -129,7 +128,7 @@ void DetermineElementIntersectionNew(
                 Y2 = -Y1;
                 if ( (y >= Y1) && (y <= Y2) )
                 {
-                    if ( DOT(CosRayIn, DFXYZ) < 0 )
+                    if ( DOT_GPU(CosRayIn, DFXYZ) < 0 )
                         *BacksideFlag = false;
                     else
                         *BacksideFlag = true;
@@ -157,7 +156,7 @@ void DetermineElementIntersectionNew(
             {
                 if ( (y >= -Ri) && (y <= Ri) )
                 {
-                    if ( DOT(CosRayIn, DFXYZ) < 0 )
+                    if ( DOT_GPU(CosRayIn, DFXYZ) < 0 )
                         *BacksideFlag = false;
                     else
                         *BacksideFlag = true;
@@ -186,7 +185,7 @@ void DetermineElementIntersectionNew(
                 Y4 = -Y3;
                 if ( (y >= Y4) && (y <= Y3) )
                 {
-                    if ( DOT(CosRayIn, DFXYZ) < 0 )
+                    if ( DOT_GPU(CosRayIn, DFXYZ) < 0 )
                         *BacksideFlag = false;
                     else
                         *BacksideFlag = true;
@@ -208,7 +207,6 @@ void DetermineElementIntersectionNew(
                 *ErrorFlag = 0;
                 goto Label_100;
             }
-        break;
 
     case 't':
     case 'T': //Triangular aperture
@@ -235,7 +233,7 @@ void DetermineElementIntersectionNew(
 
             if ( r <= Ri )  //ray falls inside inscribed circle
             {
-                if ( DOT(CosRayIn, DFXYZ) < 0 )
+                if ( DOT_GPU(CosRayIn, DFXYZ) < 0 )
                     *BacksideFlag = false;
                 else
                     *BacksideFlag = true;
@@ -249,7 +247,7 @@ void DetermineElementIntersectionNew(
                 Y2 = -Ri;
                 if ( (y <= Y1) && (y >= Y2) )
                 {
-                    if ( DOT(CosRayIn, DFXYZ) < 0 )
+                    if ( DOT_GPU(CosRayIn, DFXYZ) < 0 )
                         *BacksideFlag = false;
                     else
                         *BacksideFlag = true;
@@ -277,7 +275,7 @@ void DetermineElementIntersectionNew(
                 Y4 = -Ri;
                 if ( (y >= Y4) && (y <= Y3) )
                 {
-                    if ( DOT(CosRayIn, DFXYZ) < 0 )
+                    if ( DOT_GPU(CosRayIn, DFXYZ) < 0 )
                         *BacksideFlag = false;
                     else
                         *BacksideFlag = true;
@@ -299,7 +297,6 @@ void DetermineElementIntersectionNew(
                 *ErrorFlag = 0;
                 goto Label_100;
             }
-        break;
 
     case 'r':
     case 'R': //Rectangular aperture
@@ -340,7 +337,7 @@ void DetermineElementIntersectionNew(
                 goto Label_100;
             }
 
-            if ( DOT(CosRayIn, DFXYZ) < 0 ) //successfully falls on rectangle
+            if ( DOT_GPU(CosRayIn, DFXYZ) < 0 ) //successfully falls on rectangle
                 *BacksideFlag = false;
             else
                 *BacksideFlag = true;
@@ -348,7 +345,6 @@ void DetermineElementIntersectionNew(
             *Intercept = true;
             goto Label_100;
 
-        break;
 
     case 'a':
     case 'A': //Annulus or torus contour
@@ -393,7 +389,7 @@ Label_5:
                     goto Label_100;
                 }
 
-                if ( DOT(CosRayIn, DFXYZ) < 0 ) //successfully falls on annular section
+                if ( DOT_GPU(CosRayIn, DFXYZ) < 0 ) //successfully falls on annular section
                     *BacksideFlag = false;
                 else
                     *BacksideFlag = true;
@@ -438,14 +434,13 @@ Label_5:
                     goto Label_100;
                 }
 
-                if ( DOT(CosRayIn, DFXYZ) < 0 ) //successfully falls on annular section
+                if ( DOT_GPU(CosRayIn, DFXYZ) < 0 ) //successfully falls on annular section
                     *BacksideFlag = false;
                 else
                     *BacksideFlag = true;
                 *Intercept = true;
                 goto Label_100;
             }
-        break;
 
     case 'l':
     case 'L': //off axis aperture section of line focus trough  or cylinder
@@ -488,14 +483,13 @@ Label_10:
                 goto Label_100;
             }
 
-            if ( DOT(CosRayIn, DFXYZ) < 0 ) //successfully falls on line focus or cylindrical section
+            if ( DOT_GPU(CosRayIn, DFXYZ) < 0 ) //successfully falls on line focus or cylindrical section
                 *BacksideFlag = false;
             else
                 *BacksideFlag = true;
 
             *Intercept = true;
             goto Label_100;
-        break;
 
     case 'i':
     case 'I': //irregular triangle
@@ -524,13 +518,12 @@ Label_10:
                 goto Label_100;
             }
 
-            if ( DOT(CosRayIn, DFXYZ) < 0 )
+            if ( DOT_GPU(CosRayIn, DFXYZ) < 0 )
                 *BacksideFlag = false;
             else
                 *BacksideFlag = true;
             *Intercept = true;
             goto Label_100;
-        break;
 
     case 'q':
     case 'Q': //irregular quadrilateral
@@ -563,13 +556,12 @@ Label_10:
                 goto Label_100;
             }
 
-            if ( DOT(CosRayIn, DFXYZ) < 0 )
+            if ( DOT_GPU(CosRayIn, DFXYZ) < 0 )
                 *BacksideFlag = false;
             else
                 *BacksideFlag = true;
             *Intercept = true;
             goto Label_100;
-        break;
     } //end select case
 
 Label_100:

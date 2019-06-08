@@ -3,11 +3,12 @@
 #include <math.h>
 
 #include "types.h"
-#include "procs.h"
+#include "gpu_proc.cuh"
 
+__device__
 void Surface(
             double PosXYZ[3],
-            TElement *Element,
+            ElementInfo *Element,
             double *FXYZ,
             double DFXYZ[3],
             int *ErrorFlag )

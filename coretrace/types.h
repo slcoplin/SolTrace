@@ -350,4 +350,39 @@ struct Ray
     bool StageHit = false;
 };
 
+/* The information needed to find intersections for GPU. */
+/* Variables the same as TElement */
+struct ElementInfo
+{
+    // 42 doubles, 1 bool, 2 char, 1 int
+    // >300 bytes long
+    bool Enabled;
+    double Origin[3];
+    double RRefToLoc[9];
+    double RLocToRef[9];
+    double ZAperture;
+    char SurfaceIndex;
+
+    char ShapeIndex;
+    double ParameterA;
+    double ParameterB;
+    double ParameterC;
+    double ParameterD;
+    double ParameterE;
+    double ParameterF;
+    double ParameterG;
+    double ParameterH;
+
+    int SurfaceType;
+
+    double Kappa;
+    double Alpha[5];
+    double VertexCurvX;
+    double VertexCurvY;
+    double AnnularRadius;
+    double CrossSectionRadius;
+    double ConeHalfAngle;
+    double CurvOfRev;
+};
+
 #endif

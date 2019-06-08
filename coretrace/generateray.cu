@@ -20,17 +20,6 @@
 // curand documentation https://docs.nvidia.com/cuda/curand/device-api-overview.html#device-api-overview
 // TODO wrap calls?
 
-#define gpuErrChk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line,
-    bool abort = true)
-{
-    if (code != cudaSuccess) {
-        fprintf(stderr,"GPUassert: %s %s %d\n",
-            cudaGetErrorString(code), file, line);
-        exit(code);
-    }
-}
-
 
 __global__
 void ray_kernel(double MinXSun,

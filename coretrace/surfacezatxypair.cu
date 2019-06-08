@@ -2,11 +2,12 @@
 #include <math.h>
 
 #include "types.h"
-#include "procs.h"
+#include "gpu_proc.cuh"
 
+__device__
 void SurfaceZatXYPair(
             double PosXYZ[3],
-            TElement *Element,
+            ElementInfo *Element,
             double *FXYZ,
             int *ErrorFlag )
 {

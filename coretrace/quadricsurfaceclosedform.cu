@@ -1,12 +1,13 @@
 #include <math.h>
 
 #include "types.h"
-#include "procs.h"
+#include "gpu_proc.cuh"
 
 #define sqr(x) (x*x)
 
+__device__
 void QuadricSurfaceClosedForm(
-            TElement *Element,
+            ElementInfo *Element,
             double PosLoc[3],
             double CosLoc[3],
             double PosXYZ[3],

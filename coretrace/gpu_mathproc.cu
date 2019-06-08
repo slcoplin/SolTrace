@@ -129,3 +129,16 @@ void TransformToReferenceGPU(double PosLoc[3], double CosLoc[3], double Origin[3
         PosRef[i] = PosDum[i] + Origin[i];
 }
 
+__device__
+double DOT_GPU(double A[3], double B[3])
+{
+//{Purpose: To compute the DOT_GPU product of 2 N-dimensional vectors, A and B
+  //        Input -
+  //              A(N) = First input vector
+  //              B(N) = Second input vector
+  //              N = dimension of vectors
+  //        Output -
+  //             Result of DOT_GPU = DOT_GPU product of A and B}
+
+    return (A[0]*B[0] + A[1]*B[1] + A[2]*B[2]);
+}

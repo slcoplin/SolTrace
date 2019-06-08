@@ -3,7 +3,7 @@
 #include <math.h>
 
 #include "types.h"
-#include "procs.h"
+#include "gpu_proc.cuh"
 
 #define   Order 3
 #define   NumIterations 20
@@ -36,37 +36,8 @@
     return (u > 0) && (v > 0) && (u + v < 1)
 */
 
-/*
-int intri_bary(double x1, double y1,
-                 double x2, double y2,
-                 double x3, double y3,
-                 double xt, double yt)
-{
-    // Compute vectors
-    double v00 = x3-x1;
-    double v01 = y3-y1;
-    double v10 = x2-x1;
-    double v11 = y2-y1;
-    double v20 = xt-x1;
-    double v21 = yt-y1;
 
-
-    // Compute dot products
-    double dot00 = v00*v00+v01*v01;
-    double dot01 = v00*v10+v01*v11;
-    double dot02 = v00*v20+v01*v21;
-    double dot11 = v10*v10+v11*v11;
-    double dot12 = v10*v20+v11*v21;
-
-    // Compute barycentric coordinates
-    double invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
-    double u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-    double v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-
-    // Check if point is in triangle
-    return (u > 0) && (v > 0) && (u + v < 1);
-}*/
-
+__device__
 int intri(double x1, double y1,
                  double x2, double y2,
                  double x3, double y3,
@@ -78,6 +49,7 @@ int intri(double x1, double y1,
     return (sign(a) == sign(b) && sign(b) == sign( c));
 }
 
+__device__
 int inquad(double x1, double y1,
                  double x2, double y2,
                  double x3, double y3,
@@ -88,9 +60,10 @@ int inquad(double x1, double y1,
         || intri(x1,y1,x3,y3,x4,y4,xt,yt);
 }
 
+__device__
 void Intersect( double PosLoc[3],
             double CosLoc[3],
-            TElement *Element,
+            ElementInfo *Element,
             double PosXYZ[3],
             double CosKLM[3],
             double DFXYZ[3],
@@ -135,29 +108,21 @@ at intersection point of ray and surface. Path length is also computed.  From Sp
                          = 1 for Newton-Raphson iteration failed to converge
                          = 2 for interpolation error in SURFACE procedure} */
     int i = 0;
-    double S0 = 0.0, S00 = 0.0, S0A = 0.0;
-    double X1 = 0.0,x = 0.0,y = 0.0,r = 0.0,Y10 = 0.0,Y1A = 0.0,X10 = 0.0,X1A = 0.0;
+    double S0 = 0.0;
+    double X1 = 0.0,x = 0.0,y = 0.0,r = 0.0;
     double Y1 = 0.0;
     double SJ = 0.0;
     double SJ1 = 0.0;
     double DFDXYZ = 0.0;
     double FXYZ = 0.0;
     int OKFlag = 0;
-    double ZStart = 0.0, ZA = 0.0;
-    double ZStartcs = 0.0, PLengthcs = 0.0;
-    int EFlagcs=0;
-    double OuterRadius = 0.0, InnerRadius = 0.0, R1 = 0.0, R1A = 0.0, R10 = 0.0, Z1 = 0.0, dzdR1 = 0.0;
+    double ZStart = 0.0;
     double S0Aperture = 0.0;
     double Ro = 0.0, Ri = 0.0, XL = 0.0;
     bool ZAInterceptInsideAperture = false;
     double Y2 = 0.0,Y3 = 0.0,Y4 = 0.0;
     double SLOP60 = 0.0, FXY = 0.0;
-    double PosDum[3] = { 0.0, 0.0, 0.0 };
-    double PosAtZA[3] = { 0.0, 0.0, 0.0 };
-    double PosAtZ0[3] = { 0.0, 0.0, 0.0 };
     double P1x = 0.0,P1y = 0.0,P2x = 0.0,P2y = 0.0,P3x = 0.0,P3y = 0.0,P4x = 0.0,P4y = 0.0;
-    char ApertureShapeIndex = ' ';
-    double PosInputToCS = 0.0;
     int in_quad = 0;
 
     *ErrorFlag = 0;
@@ -343,7 +308,6 @@ at intersection point of ray and surface. Path length is also computed.  From Sp
             ZAInterceptInsideAperture = true;
             goto Label_5;
 
-        break;
 
     case 'a':
     case 'A'://Annulus
@@ -404,7 +368,6 @@ Label_4:
             ZAInterceptInsideAperture = true;
             goto Label_5;
 
-        break;
 
     case 'i':
     case 'I': //irregular triangle
@@ -449,7 +412,6 @@ Label_4:
 
             ZAInterceptInsideAperture = true;
             goto Label_5;
-        break;
 
     case 'q':
     case 'Q'://irregular quadrilateral
@@ -506,7 +468,6 @@ Label_4:
 
             ZAInterceptInsideAperture = true;
             goto Label_5;
-        break;
     default:
         break;
     } // end switch
@@ -589,7 +550,7 @@ Label_10:
         goto Label_100;
 
 Label_40:
-        DFDXYZ = DOT(DFXYZ, CosKLM);
+        DFDXYZ = DOT_GPU(DFXYZ, CosKLM);
         if ( fabs(FXYZ) <= Epsilon*fabs(DFDXYZ) ) goto Label_100;
 
         SJ1 = SJ - FXYZ/DFDXYZ;
