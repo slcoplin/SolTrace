@@ -19,7 +19,7 @@ CUDA_LIB_PATH   ?= $(CUDA_PATH)/lib
 
 # OS-specific build flags
 ifeq ($(shell uname),Darwin)
-	LDFLAGS       := -Xlinker -rpath $(CUDA_LIB_PATH) -L$(CUDA_LIB_PATH) -lcudart -lcufft
+	LDFLAGS       := -Xlinker -rpath $(CUDA_LIB_PATH) -L$(CUDA_LIB_PATH) -lcudart
 	CFLAGS   	  := $(CFLAGS) -arch $(OS_ARCH)
 else
 	ifeq ($(OS_SIZE),32)

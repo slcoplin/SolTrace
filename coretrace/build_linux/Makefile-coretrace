@@ -49,7 +49,8 @@ OBJECTS = \
     torusclosedform.o \
     raytrace.o \
     types.o \
-    vshot.o
+    vshot.o \
+	gpu_linker.o
 
 
 TARGET=coretrace.a
@@ -58,15 +59,18 @@ $(TARGET):$(OBJECTS)
 	ar rs $(TARGET) $(OBJECTS)
 
 generateray.o: generateray.cu
-	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -c $<
+	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -dc $<
 
 # -dc means the library is useable in multiple kernels. It will generally just get compiled
 # inline
 gpu_proc.o: gpu_proc.cu
-	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -c $<
+	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -dc $<
 
 check_intersection.o: check_intersection.cu
 	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -c $<
+
+gpu_linker.o: gpu_proc.o generateray.o
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -dlink  gpu_proc.o generateray.o -o $@
 
 
 clean:

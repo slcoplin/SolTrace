@@ -1,13 +1,14 @@
 #include "types.h"
 
-__global__
-void ray_kernel(double MinXSun,
-                double MaxXSun,
-                double MinYSun,
-                double MaxYSun,
-                double *d_PosSunStage,
-                double *d_Sun_RLocToRef,
-                double *d_Origin,
-                double *d_Glob_RLocToRef,
-                GlobalRay *d_IncomingRays,
-                st_uint_t NumberOfRays);
+__device__
+void MatrixVectorMultGPU(double M[9], double V[3], double MxV[3]);
+
+__device__
+void TransformToLocalGPU(double PosRef[3], double CosRef[3], double Origin[3],
+    double RRefToLoc[9],
+    double PosLoc[3], double CosLoc[3]);
+
+__device__
+void TransformToReferenceGPU(double PosLoc[3], double CosLoc[3], double Origin[3],
+    double RLocToRef[9],
+    double PosRef[3], double CosRef[3]);
