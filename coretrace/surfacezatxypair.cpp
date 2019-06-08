@@ -27,9 +27,9 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the 
-*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to 
-*  any modified version of this software or any modified version of the underlying software originally 
+*  the underlying software originally provided by Alliance as "SolTrace". Except to comply with the
+*  foregoing, the term "SolTrace", or any confusingly similar designation may not be used to refer to
+*  any modified version of this software or any modified version of the underlying software originally
 *  provided by Alliance without the prior written consent of Alliance.
 *
 *  5. The name of the copyright holder, contributors, the United States Government, the United States
@@ -98,7 +98,7 @@ void SurfaceZatXYPair(
     Y = PosXYZ[1];
     Z = PosXYZ[2];
     *ErrorFlag = 0;
-    
+
 //===SurfaceType = 1, 7  Rotationally Symmetric surfaces and single axis curvature sections===========================
     if (Element->SurfaceType == 1 || Element->SurfaceType == 7)
     {
@@ -128,14 +128,7 @@ void SurfaceZatXYPair(
 /*        for (i=0;i<5;i++)
              if (Element->Alpha[i] != 0.0) goto Label_130;
              */
-             
-        return;
 
-        Sum1 = 0.0;
-        for (i=0;i<5;i++)
-             Sum1 = Element->Alpha[i]*pow(Rho,2*(i+1)) + Sum1;
-
-        *FXYZ += Sum1;
         return;
 
 Label_160:
@@ -191,43 +184,6 @@ Label_160:
           return;
      end;}*/
 
-//===SurfaceType = 5, VSHOT data================================================
-    if (Element->SurfaceType == 5)
-    {
-        Rho2 = X*X + Y*Y;
-        if (Rho2 == 0.0)
-        {
-            *FXYZ = 0.0;
-            return;
-        }
-        // evaluate z, dz/dx and dz/dy from the monomial fit at x,y
-        EvalMono(X, Y, Element->BCoefficients, Element->FitOrder, 0.0, 0.0, &zm); //the 0.0's are values for DeltaX and DeltaY; **[need to look at this further]**
-        *FXYZ = zm;
-        return;
-    }
-
-//===SurfaceType = 6, Zernike monomials=========================================
-    if (Element->SurfaceType == 6)
-    {
-          // evaluate z from the monomial expression at x,y
-        EvalMono(X, Y, Element->BCoefficients, Element->FitOrder, 0.0, 0.0, &ZZ); //the 0.0's are values for DeltaX and DeltaY; **[need to look at this further]**
-        *FXYZ = ZZ;
-        return;
-    }
-
-//===SurfaceType = 8, rotationally symmetric polynomial surface=============================
-    if (Element->SurfaceType == 8)
-    {
-        // evaluate z & slopes from the polynomial expression at r = sqrt(x^2+y^2)
-
-        double yval = Y;
-        if ( Element->ShapeIndex == 'l' || Element->ShapeIndex == 'L' )
-            yval = 0.0;
-
-        EvalPoly(X, yval, Element->PolyCoeffs, Element->FitOrder, &ZZ);
-        *FXYZ = ZZ;
-        return;
-    }
 //===SurfaceType = 9, rotationally symmetric cubic spline interpolation surface==============
      /*if (Element->SurfaceType == 9)
      {
