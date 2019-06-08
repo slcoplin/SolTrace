@@ -60,32 +60,6 @@
 #include "mtrand.h"
 #include "stapi.h"
 
-void Intersect(
-            double PosLoc[3],
-            double CosLoc[3],
-            TElement *Element,
-            double PosXYZ[3],
-            double CosKLM[3],
-            double DFXYZ[3],
-            double *PathLength,
-            int *ErrorFlag );
-
-void Surface(
-            double PosXYZ[3],
-            TElement *Element,
-            double *FXYZ,
-            double DFXYZ[3],
-            int *ErrorFlag );
-
-void QuadricSurfaceClosedForm(
-            TElement *Element,
-            double PosLoc[3],
-            double CosLoc[3],
-            double PosXYZ[3],
-            double DFXYZ[3],
-            double *PathLength,
-            int *ErrorFlag);
-
 void TorusClosedForm(
             TElement *Element,
             double PosLoc[3],
@@ -151,18 +125,6 @@ void SurfaceNormalErrors( MTRand &myrng, double CosIn[3],
                          TOpticalProperties *OptProperties,
                          double CosOut[3] )  throw(nanexcept);
 
-void DetermineElementIntersectionNew(
-            TElement *Element,
-            double PosRayIn[3],
-            double CosRayIn[3],
-            double PosRayOut[3],
-            double CosRayOut[3],
-            double DFXYZ[3],
-            double *PathLength,
-            int *ErrorFlag,
-            int *Intercept,
-            int *BacksideFlag );
-
 void NewZStartforCubicSplineSurf(
             double CRadius,
             double PosLoc[3],
@@ -171,14 +133,6 @@ void NewZStartforCubicSplineSurf(
             double *NewZStart,
             double *PLength,
             int *EFlag );
-
-void SurfaceZatXYPair(
-            double PosXYZ[3],
-            TElement *Element,
-            double *FXYZ,
-            int *ErrorFlag );
-
-
 
 
 void MatrixVectorMult(double M[3][3], double V[3], double MxV[3]);

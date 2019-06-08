@@ -23,9 +23,9 @@ NVCC            ?= $(CUDA_BIN_PATH)/nvcc
 
 # OS-architecture specific flags
 ifeq ($(OS_SIZE),32)
-	NVCCFLAGS := -m32
+	NVCCFLAGS := -m32 -g
 else
-	NVCCFLAGS := -m64
+	NVCCFLAGS := -m64 -g
 endif
 
 
@@ -33,24 +33,19 @@ OBJECTS = \
     treemesh.o \
     apertureplane.o \
     check_intersection.o \
-    determineelementintersectionnew.o \
     dumpsys.o \
     errors.o \
     generateray.o \
     input.o \
     interaction.o \
-    intersect.o \
     mathproc.o \
     gpu_proc.o \
     newzstartforcubicsplinesurf.o \
-    quadricsurfaceclosedform.o \
     root432.o \
     spencerandmurtysurfaceclosedform.o \
     stapi.o \
     suntoprimarystage.o \
-    surface.o \
     surfacenormalerrors.o \
-    surfacezatxypair.o \
     torusclosedform.o \
     raytrace.o \
     types.o \

@@ -159,27 +159,6 @@ Label_160:
         goto Label_990;
     }
 
- //the following surfacetype is now handled above in the general case
-
-//===SurfaceType = 7, single axis curvature parabolic or spherical surface=============================
-     /*{if SurfaceType = 7 then
-     begin
-       if (SurfaceIndex = 'p') or (SurfaceIndex = 'P') then
-       begin
-          FXYZ := Z - X*X*VertexCurvX/2.0;
-          DFDX := -X*VertexCurvX;
-          DFDY := 0.0;
-          DFDZ := 1.0;
-       end;
-       if (SurfaceIndex = 's') or (SurfaceIndex = 'S') then
-       begin
-        FXYZ := Z - 0.5*VertexCurvX*(X*X + Z*Z);
-        DFDX := -VertexCurvX*X;
-        DFDY := 0.0;
-        DFDZ := 1.0 - VertexCurvX*Z;
-       end;
-     end;}*/
-
 //{****Offload derivatives of the surface equation}
 Label_990:
     DFXYZ[0] = DFDX;

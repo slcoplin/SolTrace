@@ -61,32 +61,43 @@
 // curand documentation https://docs.nvidia.com/cuda/curand/device-api-overview.html#device-api-overview
 // TODO wrap calls?
 
+#define gpuErrChk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line,
+    bool abort = true)
+{
+    if (code != cudaSuccess) {
+        fprintf(stderr,"GPUassert: %s %s %d\n",
+            cudaGetErrorString(code), file, line);
+        exit(code);
+    }
+}
+
 void generate_rays(TSystem *System,
                    GlobalRay *IncomingRays,
                    st_uint_t NumberOfRays){
 
   // Space for output
   GlobalRay *d_IncomingRays;
-  cudaMalloc(&d_IncomingRays, NumberOfRays * sizeof(GlobalRay));
+  gpuErrChk(cudaMalloc(&d_IncomingRays, NumberOfRays * sizeof(GlobalRay)));
 
-  // Transfer Sun info into registers
+  // Transfer Sun info into device memory
   double *d_PosSunStage;
   double *d_Origin;
-  cudaMalloc(&d_PosSunStage, 3 * sizeof(double));
-  cudaMalloc(&d_Origin, 3 * sizeof(double));
-  cudaMemcpy(d_PosSunStage, System->Sun.PosSunStage, 3 * sizeof(double), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_Origin, System->StageList[0]->Origin, 3 * sizeof(double), cudaMemcpyHostToDevice);
+  gpuErrChk(cudaMalloc(&d_PosSunStage, 3 * sizeof(double)));
+  gpuErrChk(cudaMalloc(&d_Origin, 3 * sizeof(double)));
+  gpuErrChk(cudaMemcpy(d_PosSunStage, System->Sun.PosSunStage, 3 * sizeof(double), cudaMemcpyHostToDevice));
+  gpuErrChk(cudaMemcpy(d_Origin, System->StageList[0]->Origin, 3 * sizeof(double), cudaMemcpyHostToDevice));
 
   // Transfer transform matrices
   double *d_Glob_RLocToRef;
-  cudaMalloc(&d_Glob_RLocToRef, 9 * sizeof(double *));
+  gpuErrChk(cudaMalloc(&d_Glob_RLocToRef, 9 * sizeof(double *)));
   for (uint i = 0; i < 3; i++) {
-      cudaMemcpy(d_Glob_RLocToRef + 3 * i, System->StageList[0]->RLocToRef[i], 3 * sizeof(double), cudaMemcpyHostToDevice);
+      gpuErrChk(cudaMemcpy(d_Glob_RLocToRef + 3 * i, System->StageList[0]->RLocToRef[i], 3 * sizeof(double), cudaMemcpyHostToDevice));
   }
   double *d_Sun_RLocToRef;
-  cudaMalloc(&d_Sun_RLocToRef, 9 * sizeof(double *));
+  gpuErrChk(cudaMalloc(&d_Sun_RLocToRef, 9 * sizeof(double *)));
   for (uint i = 0; i < 3; i++) {
-      cudaMemcpy(d_Sun_RLocToRef + 3 * i, System->Sun.RLocToRef[i], 3 * sizeof(double), cudaMemcpyHostToDevice);
+      gpuErrChk(cudaMemcpy(d_Sun_RLocToRef + 3 * i, System->Sun.RLocToRef[i], 3 * sizeof(double), cudaMemcpyHostToDevice));
   }
 
   // Call ray generating kernel
@@ -98,9 +109,10 @@ void generate_rays(TSystem *System,
       d_PosSunStage, d_Sun_RLocToRef, d_Origin, d_Glob_RLocToRef,
       d_IncomingRays, NumberOfRays
       );
+  gpuErrChk(cudaPeekAtLastError());
 
   // Copy output into IncomingRays
-  cudaMemcpy(IncomingRays, d_IncomingRays, NumberOfRays * sizeof(GlobalRay), cudaMemcpyDeviceToHost);
+  gpuErrChk(cudaMemcpy(IncomingRays, d_IncomingRays, NumberOfRays * sizeof(GlobalRay), cudaMemcpyDeviceToHost));
 
   System->SunRayCount = NumberOfRays;
 }
