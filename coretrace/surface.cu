@@ -45,18 +45,13 @@ geometric surfaces.
                          > 0  ==> interpolation error
 }*/
 
-    int i=0,k=0;
+    int i=0;
     double X=0.0,Y=0.0,Z=0.0;
-    double Rho=0.0, Rho2=0.0, Rho2i=0.0;
+    double Rho2=0.0;
     double DFDX=0, DFDY=0, DFDZ=0;
     double Sum1=0.0, Sum2=0.0, Term=0.0;
     double Y2=0.0, Y2J=0.0;
-    double FY=0.0, ZZ=0.0;
-    double zm=0.0, zr=0.0;
-    double dzrdx=0.0, dzrdy=0.0, delzx=0.0, delzy=0.0;
-    double density=0.0, delta=0.0;
-    double zx=0.0, zy=0.0;
-    double dzdRho=0.0, dRhodx=0.0, dRhody=0.0;
+    double FY=0.0;
 
 //label 100, 130,160, 850, 990;
 
@@ -93,7 +88,6 @@ geometric surfaces.
 */
         Sum1 = 0.0;
         Sum2 = 0.0;
-        Rho2i = 1.0;
 
         // wendelin 5-18-11
         /*

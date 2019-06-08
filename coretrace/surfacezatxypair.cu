@@ -40,15 +40,12 @@ void SurfaceZatXYPair(
                          = 0  ==> no errors
                          > 0  ==> interpolation error
 }*/
-    int i=0;
-    double X=0.0,Y=0.0,Z=0.0;
-    double Rho2=0.0, Rho=0.0;
-    double Sum1=0.0, ZZ=0.0,  zm=0.0;
+    double X=0.0,Y=0.0;
+    double Rho2=0.0;
 
      //Initialize variables
     X = PosXYZ[0];
     Y = PosXYZ[1];
-    Z = PosXYZ[2];
     *ErrorFlag = 0;
 
 //===SurfaceType = 1, 7  Rotationally Symmetric surfaces and single axis curvature sections===========================
@@ -58,8 +55,6 @@ void SurfaceZatXYPair(
             Rho2 = X*X + Y*Y;    //rotationally symmetric
         else
             Rho2 = X*X;         //single axis curvature depends only on x
-
-        Rho = sqrt(Rho2);
 
         if (Element->ConeHalfAngle != 0.0) goto Label_160;
 

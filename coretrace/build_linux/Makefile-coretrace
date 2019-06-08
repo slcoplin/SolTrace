@@ -68,8 +68,8 @@ $(TARGET):$(OBJECTS)
 gpu_mathproc.o: gpu_mathproc.cu
 	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -dc $<
 
-gpu_linker.o: gpu_proc.o generateray.o check_intersection.o
-	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -dlink  gpu_proc.o generateray.o check_intersection.o -o $@
+gpu_linker.o: gpu_mathproc.o gpu_generateray.o gpu_check_intersection.o gpu_determineelementintersectionnew.o gpu_intersect.o gpu_quadricsurfaceclosedform.o gpu_surface.o gpu_surfacezatxypair.o
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -dlink  gpu_mathproc.o gpu_generateray.o gpu_check_intersection.o gpu_determineelementintersectionnew.o gpu_intersect.o gpu_quadricsurfaceclosedform.o gpu_surface.o gpu_surfacezatxypair.o -o $@
 
 gpu_%.o: %.cu
 	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -dc $<
