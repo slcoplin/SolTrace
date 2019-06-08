@@ -2,6 +2,41 @@
 #include "check_intersection.cuh"
 #include "procs.h"
 
+/* The information needed to find intersections */
+/* Variables the same as TElement */
+struct ElementInfo
+{
+    // 42 doubles, 1 bool, 2 char, 1 int
+    // >300 bytes long
+    bool Enabled;
+    double Origin[3];
+    double RRefToLoc[3][3];
+    double RLocToRef[3][3];
+    double ZAperture;
+    char SurfaceIndex;
+
+    char ShapeIndex;
+    double ParameterA;
+    double ParameterB;
+    double ParameterC;
+    double ParameterD;
+    double ParameterE;
+    double ParameterF;
+    double ParameterG;
+    double ParameterH;
+
+    int SurfaceType;
+
+    double Kappa;
+    double Alpha[5];
+    double VertexCurvX;
+    double VertexCurvY;
+    double AnnularRadius;
+    double CrossSectionRadius;
+    double ConeHalfAngle;
+    double CurvOfRev;
+};
+
 /*
  * Check the ray for intersections with all elements in element_list.
  * Modifies ray.
@@ -83,14 +118,14 @@ void check_intersection_in_stage(std::vector<TElement*> &element_list,
 }
 
 void check_intersection_for_all_rays(TStage *Stage, Ray *AllRays, st_uint_t NumberOfRays){
+    // Find number of elements to check intersections with, and set element_list
+    st_uint_t nintelements = Stage->ElementList.size();
+    std::vector<TElement*> element_list = Stage->ElementList;
+
     // Check for an intersection for all rays in AllRays
     for (st_uint_t RayIndex = 0; RayIndex < NumberOfRays; RayIndex++) {
 
         Ray *ray = &AllRays[RayIndex];
-
-        // Find number of elements to check intersections with, and set element_list
-        st_uint_t nintelements = Stage->ElementList.size();
-        std::vector<TElement*> element_list = Stage->ElementList;
 
         // Check for ray intersections
         check_intersection_in_stage(element_list, nintelements, ray);
